@@ -1,36 +1,68 @@
-# Estructura de ramas y flujo de trabajo
+# GitFlow del proyecto
 
-El desarrollo sale de `main` y vuelve a `main`. No se trabaja sobre una rama `dev`.
+El desarrollo usa GitFlow con dos ramas permanentes, `main` y `dev`, y ramas temporales para cada cambio. El mismo flujo está en el README de la raíz.
 
-## `main`
-
-Producción. Solo contiene código estable y listo para desplegarse. Cuando corresponde, se crea un tag de versión sobre esta rama.
-
-## Ramas de trabajo
-
-Son ramas locales creadas a partir de `main`:
-
-| Rama | Cuándo | Ejemplo |
-| --- | --- | --- |
-| `function/<nombre>` | Una funcionalidad nueva. | `function/agregar-login`, `function/modulo-red-social` |
-| `fix/<nombre>` | Corregir un bug. | `fix/error-carga-imagenes`, `fix/validacion-formulario` |
-
-Nombres en minúsculas y con guiones.
-
-## Flujo de trabajo
-
-1. Crear una rama local a partir de `main` (`function/...` o `fix/...`).
-2. Desarrollar y probar en esa rama.
-3. Fusionar hacia `main` cuando el cambio está listo, mediante pull request o merge.
-4. Eliminar la rama local una vez fusionada.
-5. Crear un tag de versión sobre `main` cuando corresponda.
-
-```bash
-git checkout main
-git pull
-git checkout -b function/agregar-login
-# ... commits ...
-git push -u origin function/agregar-login
+```
+feature/* ──► dev ──► release/* ──► main (tag)
+                              ▲         │
+                              └── hotfix/* (vuelve también a dev)
 ```
 
-La estrategia de ramas se irá refinando conforme avance el proyecto.
+## Ramas permanentes
+
+### `main`
+
+Producción. Solo recibe merges de `release/*` y `hotfix/*`. Cada merge que sale a producción lleva un tag de versión (`v1.0.0`, `v1.0.1`).
+
+### `dev`
+
+Integración. Aquí se juntan las funcionalidades terminadas. El día a día no se commitea directo en `dev`: entra por pull request desde una rama `feature/*`.
+
+## Ramas temporales
+
+| Rama | Sale de | Vuelve a | Cuándo |
+| --- | --- | --- | --- |
+| `feature/<nombre>` | `dev` | `dev` | Una funcionalidad o cambio nuevo. |
+| `release/<versión>` | `dev` | `main` y `dev` | Preparar una versión: pruebas finales y ajustes menores. |
+| `hotfix/<nombre>` | `main` | `main` y `dev` | Corregir un fallo que ya está en producción. |
+
+Nombres en minúsculas y con guiones: `feature/login-usuarios`, `release/1.2.0`, `hotfix/error-pago`.
+
+## Flujo de una funcionalidad
+
+1. Partir de `dev` actualizada y crear `feature/<nombre>`.
+2. Desarrollar y probar en esa rama.
+3. Abrir un pull request hacia `dev`.
+4. Revisar, fusionar y borrar la rama `feature/*`.
+
+```bash
+git checkout dev
+git pull
+git checkout -b feature/login-usuarios
+# ... commits ...
+git push -u origin feature/login-usuarios
+```
+
+## Flujo de una versión
+
+1. Cuando `dev` tiene lo que va a salir, crear `release/<versión>` desde `dev`.
+2. En esa rama solo entran correcciones y ajustes de la versión (versión en archivos, textos, bugs encontrados al probar). Nada de funcionalidades nuevas.
+3. Pull request de `release/*` hacia `main`.
+4. Al fusionar, crear el tag en `main` (`v1.2.0`).
+5. Fusionar la misma `release/*` de vuelta en `dev` para que no se pierdan los ajustes.
+6. Borrar la rama `release/*`.
+
+## Flujo de un hotfix
+
+1. Crear `hotfix/<nombre>` desde `main`.
+2. Corregir y probar.
+3. Pull request hacia `main`, fusionar y etiquetar (`v1.2.1`).
+4. Fusionar el mismo hotfix en `dev` (o en la `release/*` abierta, si hay una en curso).
+5. Borrar la rama `hotfix/*`.
+
+## Reglas
+
+- `main` se mantiene siempre desplegable.
+- No se commitea directo en `main` ni en `dev`.
+- Un pull request apunta a una sola rama: `feature` → `dev`, `release` o `hotfix` → `main`.
+- La vuelta de `release` y `hotfix` hacia `dev` es un segundo merge, para que la integración no se quede atrás de producción.
