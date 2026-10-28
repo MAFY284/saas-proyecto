@@ -1,0 +1,39 @@
+# Entorno local
+.env
+.env.*
+!.env.example
+
+# Dependencias y build
+vendor/
+node_modules/
+public/build/
+public/hot
+public/storage
+
+# Laravel
+storage/*.key
+storage/logs/
+storage/framework/cache/data/
+storage/framework/sessions/
+storage/framework/views/
+storage/pail/
+bootstrap/cache/*.php
+database/*.sqlite
+database/*.sqlite-journal
+.phpunit.result.cache
+.phpunit.cache/
+.phpactor.json
+auth.json
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+
+# Editores y sistema
+.idea/
+.vscode/
+.fleet/
+.nova/
+.zed/
+.DS_Store
+Thumbs.db
