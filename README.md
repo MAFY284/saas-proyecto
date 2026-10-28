@@ -1,17 +1,27 @@
-# Estructura de ramas
+# Estructura de ramas y flujo de trabajo
 
-## main
-- Rama principal / producción.
-- Solo se actualiza cuando una versión está lista para salir a producción.
-- Debe estar siempre estable.
+## Ramas principales
 
-## dev
-- Rama de desarrollo.
-- Aquí se trabaja día a día.
-- Se hacen las pruebas antes de pasar algo a `main`.
+- **main**  
+  Rama de producción. Solo contiene código estable y listo para desplegarse.
 
-### Flujo de trabajo recomendado
-1. Se trabaja en la rama `dev`.
-2. Cuando una funcionalidad está lista y probada, se hace un **Pull Request** de `dev` → `main`.
-3. Se revisa y se fusiona.
-4. Se crea un **tag** de versión en `main`.
+## Ramas de trabajo (locales)
+
+Ya no se trabaja directamente sobre una rama `dev`.  
+El desarrollo se realiza en **ramas locales** creadas a partir de `main`, usando la siguiente nomenclatura:
+
+- `function/nombre-de-la-funcionalidad`  
+  Ejemplo: `function/agregar-login`, `function/modulo-red-social`
+
+- `fix/nombre-del-bug`  
+  Ejemplo: `fix/error-carga-imagenes`, `fix/validacion-formulario`
+
+### Flujo de trabajo
+
+1. Se crea una rama local a partir de `main` (`function/...` o `fix/...`).
+2. Se realiza el desarrollo y las pruebas en esa rama.
+3. Cuando el cambio está listo, se fusiona hacia `main` (mediante Pull Request o merge).
+4. Se elimina la rama local una vez fusionada.
+5. Cuando corresponda, se crea un **tag de versión** sobre `main`.
+
+> Nota: La estrategia de ramas se irá refinando conforme avance el proyecto.
