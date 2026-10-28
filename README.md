@@ -8,7 +8,8 @@ Repositorio del SaaS. Agrupa la aplicación web, el entorno para levantarla en l
 saas-proyecto/
 ├── project/          Aplicación Laravel
 ├── installation/     Entorno Docker (web, base de datos, phpMyAdmin)
-├── documentation/    Propuesta de arquitectura y GitFlow
+├── documentation/    Propuesta de arquitectura (dos máquinas) y flujo de ramas
+├── Documents/        Propuesta revisada (una máquina) y mapa de entidades
 └── README.md
 ```
 
@@ -58,5 +59,10 @@ docker compose up --build
 
 ### `documentation/`
 
-- `Propuesta_Arquitectura_SaaS.docx` — propuesta de arquitectura del SaaS.
-- `README.md` — GitFlow que se usa en el desarrollo (`main`, `dev`, `feature`, `release`, `hotfix`).
+- `Propuesta_Arquitectura_SaaS.docx` — propuesta de arquitectura con dos máquinas virtuales (producción y pruebas).
+- `README.md` — flujo de ramas del desarrollo (`main`, `function/*`, `fix/*`).
+
+### `Documents/`
+
+- `Propuesta_Arquitectura_SaaS.docx` — propuesta de arquitectura revisada: una máquina virtual con contenedores de producción y de desarrollo.
+- `mapa_entidades_saas.html` — mapa interactivo de entidades del SaaS.

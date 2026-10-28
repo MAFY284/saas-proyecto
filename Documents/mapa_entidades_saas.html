@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapa interactivo de entidades – SaaS Deportivo</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --primary: #123b5d;
+      --secondary: #176b87;
+      --accent: #17a6a1;
+      --bg: #f2f6fa;
+      --card: #ffffff;
+      --border: #d9e3ec;
+      --text: #203448;
+      --muted: #6d8193;
+      --relation: #087f8c;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 32px 24px 24px;
+      background-image: radial-gradient(#d7e3ed 0.7px, transparent 0.7px);
+      background-size: 18px 18px;
+    }
+
+    header {
+      max-width: 1200px;
+      margin: 0 auto 24px;
+      padding: 24px 28px;
+      text-align: left;
+      color: white;
+      background: linear-gradient(120deg, #123b5d, #176b87 68%, #159994);
+      border-radius: 18px;
+      box-shadow: 0 16px 36px rgba(18, 59, 93, 0.18);
+    }
+
+    header h1 {
+      font-size: clamp(1.5rem, 3vw, 2.15rem);
+      color: white;
+      margin-bottom: 6px;
+    }
+
+    header p {
+      color: rgba(255,255,255,0.78);
+      font-size: 0.95rem;
+    }
+
+    .note {
+      max-width: 1200px;
+      margin: 0 auto 18px;
+      background: #e8f7f6;
+      border: 1px solid #c6e8e5;
+      border-left: 4px solid var(--accent);
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      border-radius: 10px;
+    }
+
+    .toolbar {
+      max-width: 1200px;
+      margin: 0 auto 22px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 5px 16px rgba(29, 59, 83, 0.05);
+    }
+
+    .search-label {
+      flex: 1 1 260px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+    }
+
+    .search-label input {
+      width: 100%;
+      min-width: 0;
+      padding: 10px 12px;
+      color: var(--text);
+      font: inherit;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+    }
+
+    .search-label input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(23, 166, 161, 0.14);
+    }
+
+    .toolbar button {
+      padding: 9px 13px;
+      color: var(--secondary);
+      font: inherit;
+      font-weight: 600;
+      background: white;
+      border: 1px solid #bdd5df;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .toolbar button:hover { background: #eff8fa; }
+
+    .result-count {
+      color: var(--muted);
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+
+    .entity {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 5px 16px rgba(29, 59, 83, 0.06);
+      transition: opacity 180ms ease, transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+      scroll-margin-top: 20px;
+    }
+
+    .entity-header {
+      background: linear-gradient(110deg, var(--primary), #1c5975);
+      color: white;
+      padding: 12px 14px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .entity-header .en {
+      font-size: 0.75rem;
+      opacity: 0.85;
+      font-weight: 400;
+    }
+
+    .entity-body {
+      padding: 12px 14px 14px;
+    }
+
+    .field {
+      font-size: 0.85rem;
+      min-height: 29px;
+      padding: 4px 0;
+      border-bottom: 1px dashed #e8eef3;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .field:last-child { border-bottom: none; }
+
+    .pk {
+      color: #C0392B;
+      font-weight: 600;
+      font-size: 0.75rem;
+      min-width: 28px;
+    }
+
+    .fk {
+      color: #27AE60;
+      font-weight: 600;
+      font-size: 0.75rem;
+      min-width: 28px;
+    }
+
+    .attr {
+      color: var(--muted);
+      font-size: 0.75rem;
+      min-width: 28px;
+    }
+
+    .field-name { flex: 1; min-width: 0; }
+
+    .relation-link {
+      flex: 0 0 auto;
+      padding: 2px 7px;
+      color: var(--relation);
+      font: 600 0.7rem/1.5 'Segoe UI', system-ui, sans-serif;
+      background: #e7f6f5;
+      border: 1px solid #c5e8e5;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 160ms ease, color 160ms ease;
+    }
+
+    .relation-link:hover,
+    .relation-link:focus-visible {
+      color: white;
+      background: var(--relation);
+      outline: none;
+    }
+
+    .entity.is-selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(23, 166, 161, 0.17), 0 12px 26px rgba(29, 59, 83, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .entity.is-related { border-color: #9dcbd1; }
+    .entity.is-dimmed,
+    .rel-item.is-dimmed { opacity: 0.3; }
+    .entity[hidden],
+    .rel-item[hidden] { display: none; }
+
+    .relations {
+      max-width: 1200px;
+      margin: 36px auto 0;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 5px 16px rgba(29, 59, 83, 0.06);
+    }
+
+    .relations h2 {
+      font-size: 1.15rem;
+      color: var(--primary);
+      margin-bottom: 4px;
+    }
+
+    .relations > p {
+      margin-bottom: 14px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .rel-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 10px;
+      color: var(--text);
+      text-align: left;
+      font: inherit;
+      font-size: 0.88rem;
+      background: white;
+      border: 1px solid #edf1f4;
+      border-radius: 8px;
+      margin-top: 7px;
+      cursor: pointer;
+      transition: background 160ms ease, border-color 160ms ease, opacity 160ms ease;
+    }
+
+    .rel-item:hover,
+    .rel-item.is-selected { background: #eff9f9; border-color: #a9d9d7; }
+
+    .rel-item strong { color: var(--secondary); }
+    .rel-arrow { color: var(--accent); font-weight: 700; }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      padding: 28px;
+      color: var(--muted);
+      text-align: center;
+      background: white;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+    }
+
+    .legend {
+      max-width: 1200px;
+      margin: 24px auto 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      padding: 0 4px;
+    }
+
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .dot.pk { background: #C0392B; }
+    .dot.fk { background: #27AE60; }
+    .dot.attr { background: #95A5A6; }
+
+    footer {
+      max-width: 1200px;
+      margin: 32px auto 0;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .final-message {
+      margin-top: 12px;
+      font-size: 2.2rem;
+      color: var(--accent);
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 18px 14px; }
+      header { padding: 20px; }
+      .toolbar { align-items: stretch; }
+      .search-label { flex-basis: 100%; }
+      .result-count { align-self: center; }
+      .relations { padding: 16px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+    }
+
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Mapa de entidades</h1>
+  <p>Modelo relacional simplificado · Nombres normalizados para uso internacional · Español / English</p>
+</header>
+
+<div class="note">
+  <strong>Nota:</strong> Este es un mapa conceptual inicial (lluvia de ideas). No representa el modelo final de base de datos. 
+  Los nombres están pensados para ser entendibles en cualquier país. La base de datos se manejará principalmente en inglés.
+</div>
+
+<section class="toolbar" aria-label="Controles del mapa">
+  <label class="search-label" for="entity-search">
+    <span aria-hidden="true">⌕</span>
+    <input id="entity-search" type="search" placeholder="Buscar tabla, campo o relación..." autocomplete="off">
+  </label>
+  <button id="clear-search" type="button">Mostrar todo</button>
+  <span class="result-count" id="result-count" aria-live="polite"></span>
+</section>
+
+<div class="container">
+  <div class="empty-state" id="empty-state" hidden>No se encontraron entidades. Prueba con otro término.</div>
+
+  <!-- Geographic -->
+  <div class="entity" data-table="countries">
+    <div class="entity-header">
+      País / Country
+      <span class="en">countries</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field"><span class="attr">–</span> name_en</div>
+      <div class="field"><span class="attr">–</span> name_es</div>
+      <div class="field"><span class="attr">–</span> code (ISO)</div>
+    </div>
+  </div>
+
+  <div class="entity" data-table="regions">
+    <div class="entity-header">
+      Región / Region
+      <span class="en">regions</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field" data-target="countries"><span class="fk">FK</span> <span class="field-name">country_id</span></div>
+      <div class="field"><span class="attr">–</span> name_en</div>
+      <div class="field"><span class="attr">–</span> name_es</div>
+      <div class="field"><span class="attr">–</span> type (state, province, department...)</div>
+    </div>
+  </div>
+
+  <div class="entity" data-table="localities">
+    <div class="entity-header">
+      Localidad / Locality
+      <span class="en">localities</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field" data-target="regions"><span class="fk">FK</span> <span class="field-name">region_id</span></div>
+      <div class="field"><span class="attr">–</span> name_en</div>
+      <div class="field"><span class="attr">–</span> name_es</div>
+    </div>
+  </div>
+
+  <!-- Competition structure -->
+  <div class="entity" data-table="leagues">
+    <div class="entity-header">
+      Liga / League
+      <span class="en">leagues</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field" data-target="countries"><span class="fk">FK</span> <span class="field-name">country_id</span></div>
+      <div class="field"><span class="attr">–</span> name</div>
+      <div class="field"><span class="attr">–</span> level (professional, amateur...)</div>
+      <div class="field"><span class="attr">–</span> gender</div>
+    </div>
+  </div>
+
+  <div class="entity" data-table="tournaments">
+    <div class="entity-header">
+      Torneo / Tournament
+      <span class="en">tournaments</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field" data-target="leagues"><span class="fk">FK</span> <span class="field-name">league_id</span></div>
+      <div class="field"><span class="attr">–</span> name</div>
+      <div class="field"><span class="attr">–</span> season</div>
+      <div class="field"><span class="attr">–</span> start_date / end_date</div>
+    </div>
+  </div>
+
+  <!-- Teams & People -->
+  <div class="entity" data-table="teams">
+    <div class="entity-header">
+      Equipo / Team
+      <span class="en">teams</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field" data-target="localities"><span class="fk">FK</span> <span class="field-name">locality_id</span></div>
+      <div class="field" data-target="leagues"><span class="fk">FK</span> <span class="field-name">league_id</span></div>
+      <div class="field"><span class="attr">–</span> name</div>
+      <div class="field"><span class="attr">–</span> short_name</div>
+      <div class="field"><span class="attr">–</span> founded_year</div>
+    </div>
+  </div>
+
+  <div class="entity" data-table="players">
+    <div class="entity-header">
+      Jugador / Player
+      <span class="en">players</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field" data-target="teams"><span class="fk">FK</span> <span class="field-name">team_id (actual)</span></div>
+      <div class="field" data-target="countries"><span class="fk">FK</span> <span class="field-name">country_id (nacionalidad)</span></div>
+      <div class="field"><span class="attr">–</span> first_name</div>
+      <div class="field"><span class="attr">–</span> last_name</div>
+      <div class="field"><span class="attr">–</span> birth_date</div>
+      <div class="field"><span class="attr">–</span> position</div>
+    </div>
+  </div>
+
+  <div class="entity" data-table="coaches">
+    <div class="entity-header">
+      Entrenador / Coach
+      <span class="en">coaches</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field" data-target="teams"><span class="fk">FK</span> <span class="field-name">team_id (opcional)</span></div>
+      <div class="field"><span class="attr">–</span> first_name</div>
+      <div class="field"><span class="attr">–</span> last_name</div>
+      <div class="field"><span class="attr">–</span> is_verified (pago)</div>
+      <div class="field"><span class="attr">–</span> verified_until</div>
+    </div>
+  </div>
+
+  <div class="entity" data-table="team_owners">
+    <div class="entity-header">
+      Dueño de Equipo / Team Owner
+      <span class="en">team_owners</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field" data-target="teams"><span class="fk">FK</span> <span class="field-name">team_id</span></div>
+      <div class="field"><span class="attr">–</span> first_name</div>
+      <div class="field"><span class="attr">–</span> last_name</div>
+    </div>
+  </div>
+
+  <div class="entity" data-table="referees">
+    <div class="entity-header">
+      Árbitro / Referee
+      <span class="en">referees</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field" data-target="countries"><span class="fk">FK</span> <span class="field-name">country_id</span></div>
+      <div class="field"><span class="attr">–</span> first_name</div>
+      <div class="field"><span class="attr">–</span> last_name</div>
+    </div>
+  </div>
+
+  <!-- Venues & Matches -->
+  <div class="entity" data-table="venues">
+    <div class="entity-header">
+      Sede / Venue
+      <span class="en">venues</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field" data-target="localities"><span class="fk">FK</span> <span class="field-name">locality_id</span></div>
+      <div class="field"><span class="attr">–</span> name</div>
+      <div class="field"><span class="attr">–</span> capacity</div>
+      <div class="field"><span class="attr">–</span> surface_type</div>
+    </div>
+  </div>
+
+  <div class="entity" data-table="matches">
+    <div class="entity-header">
+      Partido / Match
+      <span class="en">matches</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field" data-target="tournaments"><span class="fk">FK</span> <span class="field-name">tournament_id</span></div>
+      <div class="field" data-target="teams"><span class="fk">FK</span> <span class="field-name">home_team_id</span></div>
+      <div class="field" data-target="teams"><span class="fk">FK</span> <span class="field-name">away_team_id</span></div>
+      <div class="field" data-target="venues"><span class="fk">FK</span> <span class="field-name">venue_id</span></div>
+      <div class="field" data-target="referees"><span class="fk">FK</span> <span class="field-name">referee_id</span></div>
+      <div class="field"><span class="attr">–</span> match_date</div>
+      <div class="field"><span class="attr">–</span> home_score / away_score</div>
+    </div>
+  </div>
+
+  <!-- Social -->
+  <div class="entity" data-table="posts">
+    <div class="entity-header">
+      Publicación / Post
+      <span class="en">posts</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field" data-target="coaches"><span class="fk">FK</span> <span class="field-name">coach_id (autor)</span></div>
+      <div class="field" data-target="players"><span class="fk">FK</span> <span class="field-name">player_id (opcional)</span></div>
+      <div class="field" data-target="teams"><span class="fk">FK</span> <span class="field-name">team_id (opcional)</span></div>
+      <div class="field"><span class="attr">–</span> content</div>
+      <div class="field"><span class="attr">–</span> media_url</div>
+      <div class="field"><span class="attr">–</span> post_type (goal, event, performance...)</div>
+      <div class="field"><span class="attr">–</span> created_at</div>
+    </div>
+  </div>
+
+  <!-- Multi-tenant -->
+  <div class="entity" data-table="tenants">
+    <div class="entity-header">
+      Cliente / Tenant
+      <span class="en">tenants</span>
+    </div>
+    <div class="entity-body">
+      <div class="field"><span class="pk">PK</span> id</div>
+      <div class="field"><span class="attr">–</span> name</div>
+      <div class="field"><span class="attr">–</span> plan</div>
+      <div class="field"><span class="attr">–</span> status</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="relations">
+  <h2>Relaciones entre tablas</h2>
+  <p>Selecciona una relación para localizar ambas tablas y ver las claves foráneas que las conectan.</p>
+
+  <button class="rel-item" type="button" data-tables="countries regions"><strong>Country</strong><span class="rel-arrow">1 → N</span><strong>Regions</strong></button>
+  <button class="rel-item" type="button" data-tables="regions localities"><strong>Region</strong><span class="rel-arrow">1 → N</span><strong>Localities</strong></button>
+  <button class="rel-item" type="button" data-tables="countries leagues"><strong>Country</strong><span class="rel-arrow">1 → N</span><strong>Leagues</strong></button>
+  <button class="rel-item" type="button" data-tables="leagues tournaments"><strong>League</strong><span class="rel-arrow">1 → N</span><strong>Tournaments</strong></button>
+  <button class="rel-item" type="button" data-tables="leagues teams"><strong>League</strong><span class="rel-arrow">1 → N</span><strong>Teams</strong></button>
+  <button class="rel-item" type="button" data-tables="localities teams"><strong>Locality</strong><span class="rel-arrow">1 → N</span><strong>Teams</strong></button>
+  <button class="rel-item" type="button" data-tables="countries players"><strong>Country</strong><span class="rel-arrow">1 → N</span><strong>Players</strong> <span>(nacionalidad)</span></button>
+  <button class="rel-item" type="button" data-tables="teams players"><strong>Team</strong><span class="rel-arrow">1 → N</span><strong>Players</strong></button>
+  <button class="rel-item" type="button" data-tables="teams coaches"><strong>Team</strong><span class="rel-arrow">1 → N</span><strong>Coaches</strong> <span>(relación opcional)</span></button>
+  <button class="rel-item" type="button" data-tables="teams team_owners"><strong>Team</strong><span class="rel-arrow">1 → N</span><strong>Team Owners</strong></button>
+  <button class="rel-item" type="button" data-tables="countries referees"><strong>Country</strong><span class="rel-arrow">1 → N</span><strong>Referees</strong></button>
+  <button class="rel-item" type="button" data-tables="localities venues"><strong>Locality</strong><span class="rel-arrow">1 → N</span><strong>Venues</strong></button>
+  <button class="rel-item" type="button" data-tables="tournaments matches"><strong>Tournament</strong><span class="rel-arrow">1 → N</span><strong>Matches</strong></button>
+  <button class="rel-item" type="button" data-tables="teams matches"><strong>Team</strong><span class="rel-arrow">1 → N</span><strong>Matches</strong> <span>(local y visitante)</span></button>
+  <button class="rel-item" type="button" data-tables="venues matches"><strong>Venue</strong><span class="rel-arrow">1 → N</span><strong>Matches</strong></button>
+  <button class="rel-item" type="button" data-tables="referees matches"><strong>Referee</strong><span class="rel-arrow">1 → N</span><strong>Matches</strong></button>
+  <button class="rel-item" type="button" data-tables="coaches posts"><strong>Coach</strong><span class="rel-arrow">1 → N</span><strong>Posts</strong> <span>(autor verificado)</span></button>
+  <button class="rel-item" type="button" data-tables="players posts"><strong>Player</strong><span class="rel-arrow">1 → N</span><strong>Posts</strong> <span>(opcional)</span></button>
+  <button class="rel-item" type="button" data-tables="teams posts"><strong>Team</strong><span class="rel-arrow">1 → N</span><strong>Posts</strong> <span>(opcional)</span></button>
+  <button class="rel-item" type="button" data-tables="tenants"><strong>Tenant</strong><span class="rel-arrow">multi-cliente</span><span>Separación lógica de datos por cliente</span></button>
+</div>
+
+<div class="legend">
+  <span><span class="dot pk"></span> PK = Primary Key</span>
+  <span><span class="dot fk"></span> FK = Foreign Key</span>
+  <span><span class="dot attr"></span> Atributo normal</span>
+</div>
+
+<footer>
+  Borrador de mapa de entidades · Uso interno · Nombres normalizados para contexto internacional
+
+<span class ="final-message"><p>Esta Bravo el chat 🗿🤖</p></span>
+</footer>
+
+<script>
+  const entities = [...document.querySelectorAll(".entity")];
+  const relationItems = [...document.querySelectorAll(".rel-item")];
+  const searchInput = document.querySelector("#entity-search");
+  const resultCount = document.querySelector("#result-count");
+  const emptyState = document.querySelector("#empty-state");
+  const tableById = new Map(entities.map((entity) => [entity.dataset.table, entity]));
+  let selectedTables = [];
+
+  function normalize(value) {
+    return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  }
+
+  function updateHighlights() {
+    entities.forEach((entity) => {
+      const selected = selectedTables.includes(entity.dataset.table);
+      entity.classList.toggle("is-selected", selected && selectedTables.length === 2);
+      entity.classList.toggle("is-related", selected && selectedTables.length === 1);
+      entity.classList.toggle("is-dimmed", selectedTables.length > 0 && !selected);
+    });
+
+    relationItems.forEach((item) => {
+      const tables = item.dataset.tables.split(" ");
+      const matches = selectedTables.every((table) => tables.includes(table));
+      item.classList.toggle("is-selected", selectedTables.length > 0 && matches);
+      item.classList.toggle("is-dimmed", selectedTables.length > 0 && !matches);
+    });
+  }
+
+  function focusTables(tables, scrollToTable) {
+    selectedTables = [...new Set(tables)];
+    updateHighlights();
+    const target = tableById.get(tables[tables.length - 1]);
+    if (scrollToTable && target && !target.hidden) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
+
+  function filterMap() {
+    const query = normalize(searchInput.value.trim());
+    let visibleCount = 0;
+
+    entities.forEach((entity) => {
+      const matches = normalize(entity.textContent).includes(query);
+      entity.hidden = !matches;
+      if (matches) visibleCount += 1;
+    });
+
+    relationItems.forEach((item) => {
+      const tables = item.dataset.tables.split(" ");
+      const visibleTables = tables.every((table) => !tableById.get(table)?.hidden);
+      item.hidden = query === ""
+        ? !visibleTables
+        : !normalize(item.textContent).includes(query);
+    });
+
+    emptyState.hidden = visibleCount > 0;
+    resultCount.textContent = `${visibleCount} de ${entities.length} tablas`;
+    if (selectedTables.some((table) => tableById.get(table)?.hidden)) {
+      selectedTables = [];
+      updateHighlights();
+    }
+  }
+
+  document.querySelectorAll(".field[data-target]").forEach((field) => {
+    const source = field.closest(".entity").dataset.table;
+    const target = field.dataset.target;
+    const link = document.createElement("button");
+    link.className = "relation-link";
+    link.type = "button";
+    link.textContent = `→ ${target}`;
+    link.setAttribute("aria-label", `Ver relación con ${target}`);
+    link.addEventListener("click", () => focusTables([source, target], true));
+    field.append(link);
+  });
+
+  relationItems.forEach((item) => {
+    item.addEventListener("click", () => {
+      const tables = item.dataset.tables.split(" ");
+      focusTables(tables, true);
+    });
+  });
+
+  searchInput.addEventListener("input", filterMap);
+  document.querySelector("#clear-search").addEventListener("click", () => {
+    searchInput.value = "";
+    selectedTables = [];
+    filterMap();
+    updateHighlights();
+    searchInput.focus();
+  });
+
+  filterMap();
+</script>
+</body>
+</html>
