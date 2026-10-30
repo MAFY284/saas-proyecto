@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Language;
 use App\Models\User;
+use App\Models\UserType;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -35,8 +37,9 @@ class UserController extends Controller
 
     public function create()
     {
-        return view('create', [
+        return view('users.create', [
             'user' => new User,
+            ...$this->formOptions(),
         ]);
     }
 
@@ -45,11 +48,7 @@ class UserController extends Controller
         $data = $this->validatedData($request);
 
         $user = new User;
-        $user->fill([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => $data['password'],
-        ]);
+        $this->fillUser($user, $data);
 
         if ($request->hasFile('avatar')) {
             $user->updateAvatar($request->file('avatar'));
@@ -64,19 +63,17 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        return view('users.edit', compact('user'));
+        return view('users.edit', [
+            'user' => $user,
+            ...$this->formOptions(),
+        ]);
     }
 
     public function update(Request $request, User $user)
     {
         $data = $this->validatedData($request, $user);
 
-        $user->name = $data['name'];
-        $user->email = $data['email'];
-
-        if (! empty($data['password'])) {
-            $user->password = $data['password'];
-        }
+        $this->fillUser($user, $data);
 
         if ($request->hasFile('avatar')) {
             $user->updateAvatar($request->file('avatar'));
@@ -145,24 +142,72 @@ class UserController extends Controller
     }
 
     /**
-     * @return array{name: string, email: string, password?: string}
+     * @return array<string, mixed>
+     */
+    private function formOptions(): array
+    {
+        return [
+            'userTypes' => UserType::query()->orderBy('name')->get(),
+            'languages' => Language::query()->orderBy('name')->get(),
+            'timeZones' => timezone_identifiers_list(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function fillUser(User $user, array $data): void
+    {
+        $user->fill([
+            'user_type_id' => $data['user_type_id'] ?? null,
+            'language_id' => $data['language_id'] ?? null,
+            'name' => $data['name'],
+            'first_name' => $data['first_name'],
+            'last_name' => $data['last_name'],
+            'email' => $data['email'],
+            'phone' => $data['phone'] ?? null,
+            'time_zone' => $data['time_zone'],
+            'is_active' => $data['is_active'],
+        ]);
+
+        if (! empty($data['password'])) {
+            $user->password = $data['password'];
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
      */
     private function validatedData(Request $request, ?User $user = null): array
     {
         return $request->validate([
+            'user_type_id' => ['nullable', 'integer', 'exists:user_types,id'],
+            'language_id' => ['nullable', 'integer', 'exists:languages,id'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
                 'email',
                 Rule::unique('users', 'email')->ignore($user?->id),
             ],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'time_zone' => ['required', 'string', 'max:100', Rule::in(timezone_identifiers_list())],
+            'is_active' => ['required', 'boolean'],
             'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
             'avatar' => ['nullable', 'image', 'max:2048'],
         ], [
-            'name.required' => 'El nombre es obligatorio.',
+            'user_type_id.exists' => 'El tipo de usuario no es válido.',
+            'language_id.exists' => 'El idioma no es válido.',
+            'first_name.required' => 'El nombre es obligatorio.',
+            'last_name.required' => 'El apellido es obligatorio.',
+            'name.required' => 'El nombre visible es obligatorio.',
             'email.required' => 'El email es obligatorio.',
             'email.email' => 'El email no es válido.',
             'email.unique' => 'El email ya está en uso.',
+            'phone.max' => 'El teléfono no puede superar 50 caracteres.',
+            'time_zone.required' => 'La zona horaria es obligatoria.',
+            'time_zone.in' => 'La zona horaria no es válida.',
             'password.required' => 'El password es obligatorio.',
             'password.min' => 'El password debe tener al menos 8 caracteres.',
             'avatar.image' => 'El archivo debe ser una imagen.',

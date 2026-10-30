@@ -59,7 +59,7 @@
                 @include('layouts.partials.alerts-bell')
 
                 @foreach ($accountMenus as $group)
-                    <div class="group/account relative w-full md:w-auto" data-submenu>
+                    <div class="group/account relative w-full md:w-auto" data-submenu="click">
                         <button
                             type="button"
                             class="submenu-toggle inline-flex w-full cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left md:w-auto"
@@ -71,6 +71,9 @@
                             <span class="max-w-[10rem] truncate text-[0.9rem] font-semibold {{ $group['is_active'] ? 'text-white' : 'text-gray-200' }}">
                                 {{ auth()->user()->name }}
                             </span>
+                            <svg class="h-4 w-4 shrink-0 text-gray-400 transition group-[.is-open]/account:rotate-180" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd" />
+                            </svg>
                         </button>
                         <div
                             id="submenu-{{ $group['id'] }}"

@@ -1,20 +1,13 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Inicio') — {{ config('app.name') }}</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="m-0 flex min-h-screen flex-col bg-[#eef2f7] font-sans text-gray-800 antialiased">
-    @include('layouts.partials.navbar')
+@extends('layouts.app')
 
-    <main class="flex min-h-0 flex-1 flex-col bg-white">
-        @yield('content')
-    </main>
+@section('title', 'Inicio')
 
-    @include('layouts.partials.footer')
+@section('content')
+    <h1 class="mb-4 text-[1.6rem] font-semibold text-gray-800">Inicio</h1>
 
-    @stack('scripts')
-</body>
-</html>
+    @auth
+        <p class="mb-0 text-gray-600">Has iniciado sesión como {{ auth()->user()->name }}.</p>
+    @else
+        <p class="mb-0 text-gray-600">No has iniciado sesión.</p>
+    @endauth
+@endsection

@@ -34,13 +34,6 @@ class AppServiceProvider extends ServiceProvider
             $view->with([
                 'mainMenus' => auth()->check() ? [
                     [
-                        'id' => 'dashboard',
-                        'label' => 'Dashboard',
-                        'url' => route('dashboard'),
-                        'is_active' => request()->routeIs('dashboard'),
-                        'items' => [],
-                    ],
-                    [
                         'id' => 'users',
                         'label' => 'Usuarios',
                         'url' => route('users.index'),
@@ -54,7 +47,7 @@ class AppServiceProvider extends ServiceProvider
                         'label' => 'Cuenta',
                         'is_active' => false,
                         'items' => [
-                            $link('Salir', 'logout', 'POST'),
+                            $link('Cerrar sesión', 'logout', 'POST'),
                         ],
                     ],
                 ] : [],

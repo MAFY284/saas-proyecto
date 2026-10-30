@@ -12,7 +12,19 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['name', 'email', 'password', 'avatar'])]
+#[Fillable([
+    'user_type_id',
+    'language_id',
+    'name',
+    'first_name',
+    'last_name',
+    'email',
+    'password',
+    'phone',
+    'time_zone',
+    'is_active',
+    'avatar',
+])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -27,6 +39,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 

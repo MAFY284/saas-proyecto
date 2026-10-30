@@ -16,11 +16,9 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [LoginController::class, 'store']);
 });
 
-Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+Route::redirect('/dashboard', '/');
 
+Route::middleware('auth')->group(function () {
     Route::post('users/process', [UserController::class, 'process'])->name('users.process');
     Route::delete('users/{user?}', [UserController::class, 'destroy'])->name('users.destroy');
     Route::resource('users', UserController::class)->except(['show', 'destroy']);
