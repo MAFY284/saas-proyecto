@@ -38,7 +38,7 @@ Entorno local con Docker Compose. El servicio web monta `../project` en `/var/ww
 | --- | --- |
 | `docker-compose.yaml` | Define tres servicios: `web`, `db` y `phpmyadmin`. |
 | `web/Dockerfile` | Imagen PHP 8.4 + Apache, con Composer y Node (por defecto 22) para Vite. |
-| `web/docker-entrypoint.sh` | Al arrancar espera a MariaDB, crea `.env` si falta, alinea la conexión a MySQL, genera `APP_KEY`, corre migraciones y compila los assets si aún no existen. |
+| `web/docker-entrypoint.sh` | Al arrancar espera a MariaDB. Si `project/` ya es una app Laravel, no vuelve a crearla. Como `vendor/`, `node_modules/` y `public/build/` no se suben a GitHub, los reconstruye si faltan (`composer install`, `npm ci` y `npm run build`). En el primer arranque, si el directorio está vacío, crea el proyecto Laravel. También crea `.env` si falta, deja `DB_CONNECTION=mariadb` apuntando al servicio MariaDB, genera `APP_KEY` y corre migraciones. |
 | `web/000-default.conf` | Virtual host de Apache con `mod_rewrite` hacia `public/`. |
 | `.env` | `HOST_UID`, `HOST_GID` y `NODE_VERSION` para que los archivos del contenedor coincidan con el usuario del host. |
 
