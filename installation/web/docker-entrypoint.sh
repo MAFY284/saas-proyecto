@@ -28,7 +28,13 @@ if [ ! -d "$APP_DIR" ]; then
   chown www-data:www-data "$APP_DIR"
 fi
 
-if [ ! -f "$APP_DIR/artisan" ]; then
+# Si project/ ya existe, no se recrea Laravel. vendor/ no se sube a GitHub,
+# así que se reconstruye con composer install cuando falta.
+if [ -f "$APP_DIR/artisan" ] && [ -f "$APP_DIR/composer.json" ]; then
+  echo "[entrypoint] project already generated; skipping Laravel create-project"
+elif [ -f "$APP_DIR/composer.json" ] || [ -f "$APP_DIR/package.json" ] || [ -d "$APP_DIR/app" ]; then
+  echo "[entrypoint] project directory already has application files; skipping Laravel create-project"
+else
   echo "[entrypoint] creating Laravel starter in ../project (first run)..."
   rm -rf /tmp/laravel-app
   mkdir -p /tmp/laravel-app
@@ -37,11 +43,6 @@ if [ ! -f "$APP_DIR/artisan" ]; then
   cp -a /tmp/laravel-app/. "$APP_DIR"/
   rm -rf /tmp/laravel-app
   echo "[entrypoint] Laravel installed"
-fi
-
-if [ -f "$APP_DIR/artisan" ] && [ ! -f "$APP_DIR/vendor/autoload.php" ]; then
-  echo "[entrypoint] composer install (vendor no viene en el repositorio)..."
-  gosu www-data composer install --no-interaction --prefer-dist --working-dir="$APP_DIR"
 fi
 
 if [ ! -f "$APP_DIR/.env" ] && [ -f "$APP_DIR/.env.example" ]; then
@@ -54,12 +55,20 @@ if [ -d "$APP_DIR/storage" ]; then
   chown -R www-data:www-data "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" 2>/dev/null || true
   chmod -R ug+rwx "$APP_DIR/storage" "$APP_DIR/bootstrap/cache" 2>/dev/null || true
 fi
+
+if [ -f "$APP_DIR/composer.json" ] && [ ! -f "$APP_DIR/vendor/autoload.php" ]; then
+  echo "[entrypoint] composer install (reconstruir vendor/; no se sube a GitHub)..."
+  gosu www-data composer install --no-interaction --prefer-dist --working-dir="$APP_DIR"
+elif [ -f "$APP_DIR/vendor/autoload.php" ]; then
+  echo "[entrypoint] vendor already present"
+fi
+
 [ -f "$APP_DIR/artisan" ] && chmod 775 "$APP_DIR/artisan" || true
 [ -f "$APP_DIR/.env" ] && chown www-data:www-data "$APP_DIR/.env" || true
 
 if [ -f "$APP_DIR/.env" ]; then
   sed -i \
-    -e 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/' \
+    -e 's/^DB_CONNECTION=.*/DB_CONNECTION=mariadb/' \
     -e 's/^#\? *DB_HOST=.*/DB_HOST=db/' \
     -e 's/^#\? *DB_PORT=.*/DB_PORT=3306/' \
     -e 's/^#\? *DB_DATABASE=.*/DB_DATABASE=laraveldb/' \
@@ -82,41 +91,42 @@ fi
 
 if [ -f "$APP_DIR/package.json" ]; then
   cd "$APP_DIR"
-  NEED_NPM=0
-  if [ ! -f "$APP_DIR/public/build/manifest.json" ]; then
-    NEED_NPM=1
-  fi
-  if [ ! -d "$APP_DIR/node_modules/vite" ] || [ ! -f "$APP_DIR/node_modules/picomatch/index.js" ]; then
-    NEED_NPM=1
-  fi
+  mkdir -p /tmp/npm-cache
+  export npm_config_cache=/tmp/npm-cache
+  export HOME=/tmp
 
-  if [ "$NEED_NPM" = "1" ]; then
-    echo "[entrypoint] npm install && npm run build (como root, instalación limpia)..."
-    mkdir -p /tmp/npm-cache
-    export npm_config_cache=/tmp/npm-cache
-    export HOME=/tmp
-
-    rm -rf "$APP_DIR/node_modules" "$APP_DIR/package-lock.json"
-
+  if [ ! -d "$APP_DIR/node_modules/vite" ]; then
+    echo "[entrypoint] npm install (generar node_modules, sin recrear Laravel)..."
     set +e
-    npm install
-    NPM_INSTALL_STATUS=$?
-    if [ "$NPM_INSTALL_STATUS" -eq 0 ]; then
-      npm run build
-      NPM_BUILD_STATUS=$?
+    if [ -f "$APP_DIR/package-lock.json" ]; then
+      npm ci
     else
-      NPM_BUILD_STATUS=1
+      npm install
     fi
+    NPM_INSTALL_STATUS=$?
     set -e
-
-    chown -R www-data:www-data "$APP_DIR/node_modules" "$APP_DIR/public/build" 2>/dev/null || true
-
-    if [ "${NPM_BUILD_STATUS:-1}" -eq 0 ]; then
-      echo "[entrypoint] Tailwind/Vite build ready"
-    else
-      echo "[entrypoint] WARNING: npm install/build failed — Apache will start anyway"
+    chown -R www-data:www-data "$APP_DIR/node_modules" 2>/dev/null || true
+    if [ "$NPM_INSTALL_STATUS" -ne 0 ]; then
+      echo "[entrypoint] WARNING: npm install failed — Apache will start anyway"
     fi
   else
+    echo "[entrypoint] node_modules already present"
+    NPM_INSTALL_STATUS=0
+  fi
+
+  if [ "$NPM_INSTALL_STATUS" -eq 0 ] && [ ! -f "$APP_DIR/public/build/manifest.json" ]; then
+    echo "[entrypoint] npm run build (generar public/build)..."
+    set +e
+    npm run build
+    NPM_BUILD_STATUS=$?
+    set -e
+    chown -R www-data:www-data "$APP_DIR/public/build" 2>/dev/null || true
+    if [ "$NPM_BUILD_STATUS" -eq 0 ]; then
+      echo "[entrypoint] Tailwind/Vite build ready"
+    else
+      echo "[entrypoint] WARNING: npm run build failed — Apache will start anyway"
+    fi
+  elif [ -f "$APP_DIR/public/build/manifest.json" ]; then
     echo "[entrypoint] Tailwind assets already built"
   fi
 fi
