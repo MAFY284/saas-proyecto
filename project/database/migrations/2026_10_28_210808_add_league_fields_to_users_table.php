@@ -40,8 +40,10 @@ return new class extends Migration
             ]);
         }
 
-        DB::statement('ALTER TABLE users MODIFY first_name VARCHAR(255) NOT NULL');
-        DB::statement('ALTER TABLE users MODIFY last_name VARCHAR(255) NOT NULL');
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE users MODIFY first_name VARCHAR(255) NOT NULL');
+            DB::statement('ALTER TABLE users MODIFY last_name VARCHAR(255) NOT NULL');
+        }
 
         Schema::table('users', function (Blueprint $table) {
             $table->index('time_zone');
