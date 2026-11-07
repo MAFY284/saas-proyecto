@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Language;
 use App\Models\User;
-use App\Models\UserType;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -147,7 +146,6 @@ class UserController extends Controller
     private function formOptions(): array
     {
         return [
-            'userTypes' => UserType::query()->orderBy('name')->get(),
             'languages' => Language::query()->orderBy('name')->get(),
             'timeZones' => timezone_identifiers_list(),
         ];
@@ -159,7 +157,6 @@ class UserController extends Controller
     private function fillUser(User $user, array $data): void
     {
         $user->fill([
-            'user_type_id' => $data['user_type_id'] ?? null,
             'language_id' => $data['language_id'] ?? null,
             'name' => $data['name'],
             'first_name' => $data['first_name'],
@@ -181,8 +178,7 @@ class UserController extends Controller
     private function validatedData(Request $request, ?User $user = null): array
     {
         return $request->validate([
-            'user_type_id' => ['nullable', 'integer', 'exists:user_types,id'],
-            'language_id' => ['nullable', 'integer', 'exists:languages,id'],
+            'language_id' => ['required', 'integer', 'exists:languages,id'],
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255'],
@@ -197,7 +193,7 @@ class UserController extends Controller
             'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
             'avatar' => ['nullable', 'image', 'max:2048'],
         ], [
-            'user_type_id.exists' => 'El tipo de usuario no es válido.',
+            'language_id.required' => 'El idioma es obligatorio.',
             'language_id.exists' => 'El idioma no es válido.',
             'first_name.required' => 'El nombre es obligatorio.',
             'last_name.required' => 'El apellido es obligatorio.',

@@ -15,7 +15,9 @@ class HomeTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertSee('No has iniciado sesión')
-            ->assertDontSee('Usuarios');
+            ->assertDontSee('Usuarios')
+            ->assertDontSee('Partidos')
+            ->assertDontSee('Actas');
     }
 
     public function test_el_inicio_saluda_al_usuario_autenticado(): void
@@ -27,6 +29,9 @@ class HomeTest extends TestCase
             ->assertOk()
             ->assertSee('Has iniciado sesión como Ana Ruiz')
             ->assertSee('Usuarios')
+            ->assertSee('Gestión')
+            ->assertSee('Partidos')
+            ->assertSee('Actas')
             ->assertSee('Cerrar sesión');
     }
 
