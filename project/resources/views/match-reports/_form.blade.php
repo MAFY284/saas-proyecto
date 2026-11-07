@@ -26,7 +26,7 @@
                 </option>
             @endforeach
         </select>
-        <span class="mt-1.5 block text-xs text-gray-500">Solo aparecen partidos sin acta registrada.</span>
+        <span class="mt-1.5 block text-xs text-gray-500">Solo aparecen partidos sin acta registrada. Los jugadores salen de la plantilla de cada equipo.</span>
         @error('match_id')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
@@ -171,16 +171,30 @@
     <div class="mb-4">
         <h2 class="m-0 text-[1.05rem] font-semibold text-gray-800">Jugadores del acta</h2>
         <p class="mt-1 text-xs text-gray-500">
-            Selecciona el partido para habilitar los jugadores de los dos equipos. Marca a los que participaron.
+            Los jugadores se cargan de la plantilla de cada equipo. Selecciona el partido y marca a los que participaron.
         </p>
     </div>
 
     @if ($players->isEmpty())
-        <p class="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
-            No hay jugadores registrados.
-        </p>
+        <div class="rounded-lg border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-500">
+            <p class="m-0">No hay jugadores registrados en el sistema.</p>
+            <p class="mt-1 text-xs">Primero registra jugadores y asígnalos a los equipos.</p>
+        </div>
     @else
-        <div class="overflow-x-auto">
+        <div id="players-empty-state" class="hidden rounded-lg border border-dashed border-amber-300 bg-amber-50 px-4 py-6 text-center text-sm text-amber-800">
+            <p id="players-empty-select" class="m-0 hidden">Selecciona un partido para habilitar los jugadores de los dos equipos.</p>
+            <p id="players-empty-roster" class="m-0 hidden">
+                Los equipos de este partido no tienen jugadores registrados.
+                <span class="block text-xs font-normal">Primero asigna una plantilla a cada equipo.</span>
+                @if (Route::has('players.index'))
+                    <a href="{{ route('players.index') }}" class="mt-2 inline-flex font-semibold text-amber-900 underline">
+                        Ir a Jugadores
+                    </a>
+                @endif
+            </p>
+        </div>
+
+        <div id="players-table-wrapper" class="overflow-x-auto">
             <table class="min-w-full border-collapse text-left text-sm">
                 <thead>
                     <tr class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
@@ -275,20 +289,29 @@
         document.addEventListener('DOMContentLoaded', () => {
             const matchSelect = document.getElementById('match_id');
             const rows = [...document.querySelectorAll('[data-player-row]')];
+            const emptyState = document.getElementById('players-empty-state');
+            const emptySelect = document.getElementById('players-empty-select');
+            const emptyRoster = document.getElementById('players-empty-roster');
+            const tableWrapper = document.getElementById('players-table-wrapper');
 
             function syncPlayers() {
                 const option = matchSelect?.selectedOptions?.[0];
                 const localTeamId = option?.dataset.localTeamId;
                 const visitorTeamId = option?.dataset.visitorTeamId;
+                const hasMatch = Boolean(localTeamId && visitorTeamId);
+                let visibleCount = 0;
 
                 rows.forEach((row) => {
                     const visible = Boolean(
-                        localTeamId
-                        && visitorTeamId
+                        hasMatch
                         && (row.dataset.teamId === localTeamId || row.dataset.teamId === visitorTeamId)
                     );
 
                     row.classList.toggle('hidden', !visible);
+
+                    if (visible) {
+                        visibleCount += 1;
+                    }
 
                     row.querySelectorAll('input').forEach((input) => {
                         input.disabled = !visible;
@@ -298,6 +321,14 @@
                         }
                     });
                 });
+
+                if (emptyState) {
+                    emptyState.classList.toggle('hidden', visibleCount > 0);
+                    emptySelect?.classList.toggle('hidden', !hasMatch);
+                    emptyRoster?.classList.toggle('hidden', !hasMatch);
+                }
+
+                tableWrapper?.classList.toggle('hidden', visibleCount === 0);
             }
 
             matchSelect?.addEventListener('change', syncPlayers);

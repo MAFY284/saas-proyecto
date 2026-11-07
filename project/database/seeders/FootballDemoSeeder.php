@@ -120,11 +120,18 @@ class FootballDemoSeeder extends Seeder
             'toluca' => ['Deportivo Toluca', 'TOL'],
             'leon' => ['Club León', 'LEO'],
         ] as $slug => [$teamName, $shortName]) {
-            $this->id('teams', ['slug' => $slug], [
+            $extraTeamId = $this->id('teams', ['slug' => $slug], [
                 'locality_id' => $localityId,
                 'name' => $teamName,
                 'short_name' => $shortName,
                 'is_active' => true,
+            ]);
+
+            $this->playersForTeam($extraTeamId, [
+                1 => ['Jugador', $shortName.' 1', 'GK'],
+                4 => ['Jugador', $shortName.' 2', 'DF'],
+                8 => ['Jugador', $shortName.' 3', 'MF'],
+                9 => ['Jugador', $shortName.' 4', 'FW'],
             ]);
         }
 
