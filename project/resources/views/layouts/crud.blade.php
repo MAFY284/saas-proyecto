@@ -10,8 +10,8 @@
     @include('layouts.partials.navbar')
 
     <main class="flex min-h-0 flex-1 flex-col bg-white">
-        <header class="flex shrink-0 flex-col gap-3 overflow-visible border-b border-gray-200 px-6 py-4">
-            <div class="flex items-center gap-4">
+        <header class="flex shrink-0 flex-col gap-3 overflow-visible border-b border-gray-200 px-4 py-4 sm:px-6">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                 <div class="min-w-0 flex-1">
                     @hasSection('subtitle')
                         <p class="mb-0.5 text-xs font-semibold uppercase tracking-wide text-gray-400">@yield('subtitle')</p>
@@ -20,22 +20,22 @@
                 </div>
 
                 @hasSection('header-search')
-                    <div class="w-full max-w-sm shrink-0">
+                    <div class="w-full sm:max-w-sm sm:shrink-0">
                         @yield('header-search')
                     </div>
                 @endif
             </div>
 
-            <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
                 <div class="flex flex-wrap items-center justify-start gap-2">
                     @yield('actions')
                 </div>
 
-                <div class="flex justify-center">
+                <div class="flex justify-start sm:justify-center">
                     @yield('header-center')
                 </div>
 
-                <div class="flex justify-end">
+                <div class="flex justify-start sm:justify-end">
                     @hasSection('header-right')
                         @yield('header-right')
                     @endif
@@ -43,7 +43,7 @@
             </div>
         </header>
 
-        <section class="min-h-0 flex-1 overflow-auto px-6 py-5">
+        <section class="min-h-0 flex-1 overflow-auto px-4 py-5 sm:px-6">
             @yield('content')
         </section>
     </main>
