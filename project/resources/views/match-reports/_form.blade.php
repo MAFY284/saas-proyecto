@@ -13,7 +13,7 @@
     <div class="md:col-span-2 xl:col-span-3">
         <label for="match_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Partido</label>
         <select id="match_id" name="match_id" required class="{{ $fieldClass }}">
-            <option value="">Selecciona un partido</option>
+            <option value="" disabled hidden>Selecciona un partido</option>
             @foreach ($matches as $match)
                 <option
                     value="{{ $match->id }}"
@@ -35,7 +35,7 @@
     <div>
         <label for="referee1" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Árbitro principal</label>
         <select id="referee1" name="referee1" required class="{{ $fieldClass }}">
-            <option value="">Selecciona un árbitro</option>
+            <option value="" disabled hidden>Selecciona un árbitro</option>
             @foreach ($referees as $referee)
                 <option value="{{ $referee->id }}" @selected(old('referee1', $matchReport->referee1) == $referee->id)>
                     {{ $referee->fullName() }}

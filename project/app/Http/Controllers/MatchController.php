@@ -7,7 +7,10 @@ use App\Models\Game;
 use App\Models\Team;
 use App\Models\Tournament;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class MatchController extends Controller
 {
@@ -63,7 +66,10 @@ class MatchController extends Controller
 
     public function store(Request $request)
     {
-        Game::query()->create($this->validatedData($request));
+        $data = $this->validatedData($request);
+        $data = $this->resolveNames($data);
+
+        Game::query()->create($data);
 
         return redirect()
             ->route('matches.index')
@@ -80,7 +86,10 @@ class MatchController extends Controller
 
     public function update(Request $request, Game $game)
     {
-        $game->update($this->validatedData($request, $game));
+        $data = $this->validatedData($request, $game);
+        $data = $this->resolveNames($data);
+
+        $game->update($data);
 
         return redirect()
             ->route('matches.index')
@@ -127,9 +136,97 @@ class MatchController extends Controller
     {
         return [
             'tournaments' => Tournament::query()->orderBy('name')->get(),
-            'teams' => Team::query()->orderBy('name')->get(),
-            'fields' => Field::query()->orderBy('name')->get(),
+            'teamOptions' => Team::query()->orderBy('name')->get(),
+            'fieldOptions' => Field::query()->orderBy('name')->get(),
         ];
+    }
+
+    /**
+     * Convierte los nombres escritos en IDs, creando el equipo o la sede si no existen.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function resolveNames(array $data): array
+    {
+        $localTeamId = $this->resolveTeamId((string) $data['local_team_name']);
+        $visitorTeamId = $this->resolveTeamId((string) $data['visitor_team_name']);
+
+        if ($localTeamId === $visitorTeamId) {
+            throw ValidationException::withMessages([
+                'visitor_team_name' => 'El equipo visitante no puede ser el mismo que el local.',
+            ]);
+        }
+
+        $data['local_team_id'] = $localTeamId;
+        $data['visitor_team_id'] = $visitorTeamId;
+        $data['field_id'] = $this->resolveFieldId((string) $data['field_name']);
+
+        unset($data['local_team_name'], $data['visitor_team_name'], $data['field_name']);
+
+        return $data;
+    }
+
+    private function resolveTeamId(string $name): int
+    {
+        $name = trim($name);
+
+        $team = Team::query()
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->first();
+
+        if ($team) {
+            return $team->id;
+        }
+
+        $localityId = DB::table('localities')->orderBy('id')->value('id');
+
+        if (! $localityId) {
+            throw ValidationException::withMessages([
+                'local_team_name' => 'No hay localidades registradas para crear equipos.',
+            ]);
+        }
+
+        $slug = Str::slug($name);
+
+        return Team::query()->create([
+            'locality_id' => (int) $localityId,
+            'name' => $name,
+            'slug' => ($slug !== '' ? $slug : 'equipo').'-'.Str::lower(Str::random(6)),
+            'short_name' => Str::upper(Str::substr($name, 0, 4)),
+            'is_active' => true,
+        ])->id;
+    }
+
+    private function resolveFieldId(string $name): int
+    {
+        $name = trim($name);
+
+        $field = Field::query()
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->first();
+
+        if ($field) {
+            return $field->id;
+        }
+
+        $addressId = DB::table('addresses')->orderBy('id')->value('id');
+
+        if (! $addressId) {
+            throw ValidationException::withMessages([
+                'field_name' => 'No hay direcciones registradas para crear sedes.',
+            ]);
+        }
+
+        return Field::query()->create([
+            'address_id' => (int) $addressId,
+            'name' => $name,
+            'address' => null,
+            'surface_type' => null,
+            'capacity' => null,
+            'operating_hours' => null,
+            'status' => 'available',
+        ])->id;
     }
 
     /**
@@ -139,9 +236,9 @@ class MatchController extends Controller
     {
         $data = $request->validate([
             'tournament_id' => ['required', 'integer', 'exists:tournaments,id'],
-            'local_team_id' => ['required', 'integer', 'exists:teams,id'],
-            'visitor_team_id' => ['required', 'integer', 'exists:teams,id', 'different:local_team_id'],
-            'field_id' => ['required', 'integer', 'exists:fields,id'],
+            'local_team_name' => ['required', 'string', 'max:255'],
+            'visitor_team_name' => ['required', 'string', 'max:255', 'different:local_team_name'],
+            'field_name' => ['required', 'string', 'max:255'],
             'date_time' => ['required', 'date'],
             'local_goals' => ['nullable', 'integer', 'min:0', 'max:999'],
             'visitor_goals' => ['nullable', 'integer', 'min:0', 'max:999'],
@@ -151,13 +248,13 @@ class MatchController extends Controller
         ], [
             'tournament_id.required' => 'El torneo es obligatorio.',
             'tournament_id.exists' => 'El torneo no es válido.',
-            'local_team_id.required' => 'El equipo local es obligatorio.',
-            'local_team_id.exists' => 'El equipo local no es válido.',
-            'visitor_team_id.required' => 'El equipo visitante es obligatorio.',
-            'visitor_team_id.exists' => 'El equipo visitante no es válido.',
-            'visitor_team_id.different' => 'El equipo visitante no puede ser el mismo que el local.',
-            'field_id.required' => 'La sede es obligatoria.',
-            'field_id.exists' => 'La sede no es válida.',
+            'local_team_name.required' => 'El equipo local es obligatorio.',
+            'local_team_name.max' => 'El nombre del equipo local no puede superar 255 caracteres.',
+            'visitor_team_name.required' => 'El equipo visitante es obligatorio.',
+            'visitor_team_name.max' => 'El nombre del equipo visitante no puede superar 255 caracteres.',
+            'visitor_team_name.different' => 'El equipo visitante no puede ser el mismo que el local.',
+            'field_name.required' => 'La sede o zona de juego es obligatoria.',
+            'field_name.max' => 'El nombre de la sede no puede superar 255 caracteres.',
             'date_time.required' => 'La fecha del partido es obligatoria.',
             'date_time.date' => 'La fecha del partido no es válida.',
             'local_goals.integer' => 'Los goles del local deben ser un número entero.',

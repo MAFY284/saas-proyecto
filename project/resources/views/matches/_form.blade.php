@@ -12,7 +12,7 @@
     <div>
         <label for="tournament_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Torneo</label>
         <select id="tournament_id" name="tournament_id" required class="{{ $fieldClass }}">
-            <option value="">Selecciona un torneo</option>
+            <option value="" disabled hidden>Selecciona un torneo</option>
             @foreach ($tournaments as $tournament)
                 <option value="{{ $tournament->id }}" @selected(old('tournament_id', $game->tournament_id) == $tournament->id)>
                     {{ $tournament->name }}
@@ -25,46 +25,52 @@
     </div>
 
     <div>
-        <label for="local_team_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Equipo local</label>
-        <select id="local_team_id" name="local_team_id" required class="{{ $fieldClass }}">
-            <option value="">Selecciona el equipo local</option>
-            @foreach ($teams as $team)
-                <option value="{{ $team->id }}" @selected(old('local_team_id', $game->local_team_id) == $team->id)>
-                    {{ $team->name }}
-                </option>
-            @endforeach
-        </select>
-        @error('local_team_id')
+        <label for="local_team_name" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Equipo local</label>
+        <input
+            id="local_team_name"
+            name="local_team_name"
+            list="team-options"
+            value="{{ old('local_team_name', $game->localTeam?->name) }}"
+            placeholder="Escribe o selecciona un equipo"
+            required
+            class="{{ $fieldClass }}"
+        >
+        <span class="mt-1.5 block text-xs text-gray-500">Si el equipo no existe, se creará automáticamente.</span>
+        @error('local_team_name')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
 
     <div>
-        <label for="visitor_team_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Equipo visitante</label>
-        <select id="visitor_team_id" name="visitor_team_id" required class="{{ $fieldClass }}">
-            <option value="">Selecciona el equipo visitante</option>
-            @foreach ($teams as $team)
-                <option value="{{ $team->id }}" @selected(old('visitor_team_id', $game->visitor_team_id) == $team->id)>
-                    {{ $team->name }}
-                </option>
-            @endforeach
-        </select>
-        @error('visitor_team_id')
+        <label for="visitor_team_name" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Equipo visitante</label>
+        <input
+            id="visitor_team_name"
+            name="visitor_team_name"
+            list="team-options"
+            value="{{ old('visitor_team_name', $game->visitorTeam?->name) }}"
+            placeholder="Escribe o selecciona un equipo"
+            required
+            class="{{ $fieldClass }}"
+        >
+        <span class="mt-1.5 block text-xs text-gray-500">Si el equipo no existe, se creará automáticamente.</span>
+        @error('visitor_team_name')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
 
     <div>
-        <label for="field_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Sede</label>
-        <select id="field_id" name="field_id" required class="{{ $fieldClass }}">
-            <option value="">Selecciona una sede</option>
-            @foreach ($fields as $field)
-                <option value="{{ $field->id }}" @selected(old('field_id', $game->field_id) == $field->id)>
-                    {{ $field->name }}
-                </option>
-            @endforeach
-        </select>
-        @error('field_id')
+        <label for="field_name" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Sede o zona de juego</label>
+        <input
+            id="field_name"
+            name="field_name"
+            list="field-options"
+            value="{{ old('field_name', $game->field?->name) }}"
+            placeholder="Escribe o selecciona una sede"
+            required
+            class="{{ $fieldClass }}"
+        >
+        <span class="mt-1.5 block text-xs text-gray-500">Si la sede no existe, se creará automáticamente.</span>
+        @error('field_name')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
@@ -159,3 +165,15 @@
         @enderror
     </div>
 </div>
+
+<datalist id="team-options">
+    @foreach ($teamOptions as $team)
+        <option value="{{ $team->name }}"></option>
+    @endforeach
+</datalist>
+
+<datalist id="field-options">
+    @foreach ($fieldOptions as $field)
+        <option value="{{ $field->name }}"></option>
+    @endforeach
+</datalist>

@@ -65,30 +65,68 @@ class FootballDemoSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        $fieldId = $this->id('fields', ['name' => 'Estadio Demo'], [
+        $fieldId = $this->id('fields', ['name' => 'Estadio Azteca'], [
             'address_id' => $addressId,
-            'address' => 'Av. del Deporte 123',
+            'address' => 'Calzada de Tlalpan 3465',
             'surface_type' => 'grass',
-            'capacity' => 15000,
+            'capacity' => 87000,
             'operating_hours' => '08:00 - 22:00',
             'status' => 'available',
         ]);
 
-        $homeTeamId = $this->id('teams', ['slug' => 'team-azul'], [
+        foreach ([
+            'Estadio Akron' => 49850,
+            'Estadio BBVA' => 53500,
+            'Estadio Universitario' => 42000,
+            'Estadio Hidalgo' => 30000,
+            'Estadio Corregidora' => 34000,
+        ] as $fieldName => $capacity) {
+            $this->id('fields', ['name' => $fieldName], [
+                'address_id' => $addressId,
+                'address' => null,
+                'surface_type' => 'grass',
+                'capacity' => $capacity,
+                'operating_hours' => '08:00 - 22:00',
+                'status' => 'available',
+            ]);
+        }
+
+        $homeTeamId = $this->id('teams', ['slug' => 'seleccion-mexicana'], [
             'locality_id' => $localityId,
-            'name' => 'Team Azul',
-            'short_name' => 'AZU',
-            'contact_email' => 'azul@example.com',
+            'name' => 'Selección Mexicana',
+            'short_name' => 'MEX',
+            'contact_email' => 'seleccion@example.com',
             'is_active' => true,
         ]);
 
-        $awayTeamId = $this->id('teams', ['slug' => 'team-rojo'], [
+        $awayTeamId = $this->id('teams', ['slug' => 'mexico-sub-23'], [
             'locality_id' => $localityId,
-            'name' => 'Team Rojo',
-            'short_name' => 'ROJ',
-            'contact_email' => 'rojo@example.com',
+            'name' => 'México Sub-23',
+            'short_name' => 'M23',
+            'contact_email' => 'sub23@example.com',
             'is_active' => true,
         ]);
+
+        foreach ([
+            'mexico-sub-20' => ['México Sub-20', 'M20'],
+            'mexico-sub-17' => ['México Sub-17', 'M17'],
+            'mexico-femenil' => ['México Femenil', 'MEXF'],
+            'club-america' => ['Club América', 'AME'],
+            'chivas' => ['Chivas Guadalajara', 'CHI'],
+            'cruz-azul' => ['Cruz Azul', 'CAZ'],
+            'pumas' => ['Pumas UNAM', 'PUM'],
+            'tigres' => ['Tigres UANL', 'TIG'],
+            'rayados' => ['Rayados de Monterrey', 'RAY'],
+            'toluca' => ['Deportivo Toluca', 'TOL'],
+            'leon' => ['Club León', 'LEO'],
+        ] as $slug => [$teamName, $shortName]) {
+            $this->id('teams', ['slug' => $slug], [
+                'locality_id' => $localityId,
+                'name' => $teamName,
+                'short_name' => $shortName,
+                'is_active' => true,
+            ]);
+        }
 
         $homePlayers = $this->playersForTeam($homeTeamId, [
             9 => ['Luis', 'Local', 'FW'],

@@ -103,7 +103,7 @@
     <div>
         <label for="language_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Idioma</label>
         <select id="language_id" name="language_id" required class="{{ $fieldClass }}">
-            <option value="">Selecciona un idioma</option>
+            <option value="" disabled hidden>Selecciona un idioma</option>
             @foreach ($languages as $language)
                 <option value="{{ $language->id }}" @selected(old('language_id', $user->language_id) == $language->id)>
                     {{ $language->name }}

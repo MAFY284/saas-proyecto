@@ -53,7 +53,7 @@
         </button>
         <div
             id="bulk-menu-panel"
-            class="absolute left-1/2 top-full z-30 mt-1 hidden w-48 -translate-x-1/2 rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+            class="absolute left-0 top-full z-30 mt-1 hidden w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
         >
             <button
                 type="submit"
