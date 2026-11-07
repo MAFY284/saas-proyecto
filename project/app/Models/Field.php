@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'locality_id',
     'address_id',
     'name',
     'address',
@@ -17,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'operating_hours',
     'status',
 ])]
-class Venue extends Model
+class Field extends Model
 {
     use HasFactory;
 

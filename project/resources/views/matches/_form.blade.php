@@ -25,76 +25,61 @@
     </div>
 
     <div>
-        <label for="home_team_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Equipo local</label>
-        <select id="home_team_id" name="home_team_id" required class="{{ $fieldClass }}">
+        <label for="local_team_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Equipo local</label>
+        <select id="local_team_id" name="local_team_id" required class="{{ $fieldClass }}">
             <option value="">Selecciona el equipo local</option>
             @foreach ($teams as $team)
-                <option value="{{ $team->id }}" @selected(old('home_team_id', $game->home_team_id) == $team->id)>
+                <option value="{{ $team->id }}" @selected(old('local_team_id', $game->local_team_id) == $team->id)>
                     {{ $team->name }}
                 </option>
             @endforeach
         </select>
-        @error('home_team_id')
+        @error('local_team_id')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
 
     <div>
-        <label for="away_team_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Equipo visitante</label>
-        <select id="away_team_id" name="away_team_id" required class="{{ $fieldClass }}">
+        <label for="visitor_team_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Equipo visitante</label>
+        <select id="visitor_team_id" name="visitor_team_id" required class="{{ $fieldClass }}">
             <option value="">Selecciona el equipo visitante</option>
             @foreach ($teams as $team)
-                <option value="{{ $team->id }}" @selected(old('away_team_id', $game->away_team_id) == $team->id)>
+                <option value="{{ $team->id }}" @selected(old('visitor_team_id', $game->visitor_team_id) == $team->id)>
                     {{ $team->name }}
                 </option>
             @endforeach
         </select>
-        @error('away_team_id')
+        @error('visitor_team_id')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
 
     <div>
-        <label for="venue_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Sede</label>
-        <select id="venue_id" name="venue_id" class="{{ $fieldClass }}">
-            <option value="">Sin sede asignada</option>
-            @foreach ($venues as $venue)
-                <option value="{{ $venue->id }}" @selected(old('venue_id', $game->venue_id) == $venue->id)>
-                    {{ $venue->name }}
+        <label for="field_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Sede</label>
+        <select id="field_id" name="field_id" required class="{{ $fieldClass }}">
+            <option value="">Selecciona una sede</option>
+            @foreach ($fields as $field)
+                <option value="{{ $field->id }}" @selected(old('field_id', $game->field_id) == $field->id)>
+                    {{ $field->name }}
                 </option>
             @endforeach
         </select>
-        @error('venue_id')
+        @error('field_id')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
 
     <div>
-        <label for="referee_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Árbitro</label>
-        <select id="referee_id" name="referee_id" class="{{ $fieldClass }}">
-            <option value="">Sin árbitro asignado</option>
-            @foreach ($referees as $referee)
-                <option value="{{ $referee->id }}" @selected(old('referee_id', $game->referee_id) == $referee->id)>
-                    {{ $referee->fullName() }}
-                </option>
-            @endforeach
-        </select>
-        @error('referee_id')
-            <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
-        @enderror
-    </div>
-
-    <div>
-        <label for="match_date" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Fecha y hora</label>
+        <label for="date_time" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Fecha y hora</label>
         <input
-            id="match_date"
-            name="match_date"
+            id="date_time"
+            name="date_time"
             type="datetime-local"
-            value="{{ old('match_date', $game->match_date?->format('Y-m-d\TH:i')) }}"
+            value="{{ old('date_time', $game->date_time?->format('Y-m-d\TH:i')) }}"
             required
             class="{{ $fieldClass }}"
         >
-        @error('match_date')
+        @error('date_time')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
@@ -115,34 +100,34 @@
     </div>
 
     <div>
-        <label for="home_goals" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Goles del local</label>
+        <label for="local_goals" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Goles del local</label>
         <input
-            id="home_goals"
-            name="home_goals"
+            id="local_goals"
+            name="local_goals"
             type="number"
             min="0"
             max="999"
-            value="{{ old('home_goals', $game->home_goals) }}"
+            value="{{ old('local_goals', $game->local_goals) }}"
             class="{{ $fieldClass }}"
         >
         <span class="mt-1.5 block text-xs text-gray-500">Déjalo vacío si el partido aún no se ha jugado.</span>
-        @error('home_goals')
+        @error('local_goals')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
 
     <div>
-        <label for="away_goals" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Goles del visitante</label>
+        <label for="visitor_goals" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Goles del visitante</label>
         <input
-            id="away_goals"
-            name="away_goals"
+            id="visitor_goals"
+            name="visitor_goals"
             type="number"
             min="0"
             max="999"
-            value="{{ old('away_goals', $game->away_goals) }}"
+            value="{{ old('visitor_goals', $game->visitor_goals) }}"
             class="{{ $fieldClass }}"
         >
-        @error('away_goals')
+        @error('visitor_goals')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>

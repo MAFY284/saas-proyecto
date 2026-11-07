@@ -13,9 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'short_name',
     'description',
     'country_id',
-    'language_id',
     'currency_id',
-    'address_id',
     'contact_email',
     'contact_phone',
     'logo_url',
@@ -42,10 +40,5 @@ class League extends Model
     public function tournaments(): HasMany
     {
         return $this->hasMany(Tournament::class);
-    }
-
-    public function teams(): HasMany
-    {
-        return $this->hasMany(Team::class);
     }
 }

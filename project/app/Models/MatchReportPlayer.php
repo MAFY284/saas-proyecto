@@ -8,9 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'match_report_id',
+    'match_sheet_id',
     'player_id',
-    'team_id',
     'is_starter',
     'goals',
     'yellow_cards',
@@ -19,6 +18,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class MatchReportPlayer extends Model
 {
     use HasFactory;
+
+    protected $table = 'match_sheet_players';
 
     /**
      * @return array<string, string>
@@ -35,16 +36,11 @@ class MatchReportPlayer extends Model
 
     public function report(): BelongsTo
     {
-        return $this->belongsTo(MatchReport::class, 'match_report_id');
+        return $this->belongsTo(MatchReport::class, 'match_sheet_id');
     }
 
     public function player(): BelongsTo
     {
         return $this->belongsTo(Player::class);
-    }
-
-    public function team(): BelongsTo
-    {
-        return $this->belongsTo(Team::class);
     }
 }

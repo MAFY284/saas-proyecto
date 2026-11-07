@@ -6,16 +6,15 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'league_id',
     'locality_id',
     'name',
     'slug',
     'short_name',
     'logo_url',
-    'coach_name',
     'contact_email',
     'contact_phone',
     'is_active',
@@ -34,23 +33,20 @@ class Team extends Model
         ];
     }
 
-    public function league(): BelongsTo
+    public function players(): BelongsToMany
     {
-        return $this->belongsTo(League::class);
+        return $this->belongsToMany(Player::class, 'team_players')
+            ->withPivot(['captain', 'jersey_number'])
+            ->withTimestamps();
     }
 
-    public function players(): HasMany
+    public function localGames(): HasMany
     {
-        return $this->hasMany(Player::class);
+        return $this->hasMany(Game::class, 'local_team_id');
     }
 
-    public function homeGames(): HasMany
+    public function visitorGames(): HasMany
     {
-        return $this->hasMany(Game::class, 'home_team_id');
-    }
-
-    public function awayGames(): HasMany
-    {
-        return $this->hasMany(Game::class, 'away_team_id');
+        return $this->hasMany(Game::class, 'visitor_team_id');
     }
 }

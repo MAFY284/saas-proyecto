@@ -17,12 +17,12 @@
             @foreach ($matches as $match)
                 <option
                     value="{{ $match->id }}"
-                    data-home-team-id="{{ $match->home_team_id }}"
-                    data-away-team-id="{{ $match->away_team_id }}"
+                    data-local-team-id="{{ $match->local_team_id }}"
+                    data-visitor-team-id="{{ $match->visitor_team_id }}"
                     @selected(old('match_id', $matchReport->match_id) == $match->id)
                 >
-                    {{ $match->match_date?->format('d/m/Y H:i') }} ·
-                    {{ $match->homeTeam?->name ?? 'Local' }} vs {{ $match->awayTeam?->name ?? 'Visitante' }}
+                    {{ $match->date_time?->format('d/m/Y H:i') }} ·
+                    {{ $match->localTeam?->name ?? 'Local' }} vs {{ $match->visitorTeam?->name ?? 'Visitante' }}
                 </option>
             @endforeach
         </select>
@@ -33,31 +33,61 @@
     </div>
 
     <div>
-        <label for="referee_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Árbitro</label>
-        <select id="referee_id" name="referee_id" class="{{ $fieldClass }}">
-            <option value="">Sin árbitro asignado</option>
+        <label for="referee1" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Árbitro principal</label>
+        <select id="referee1" name="referee1" required class="{{ $fieldClass }}">
+            <option value="">Selecciona un árbitro</option>
             @foreach ($referees as $referee)
-                <option value="{{ $referee->id }}" @selected(old('referee_id', $matchReport->referee_id) == $referee->id)>
+                <option value="{{ $referee->id }}" @selected(old('referee1', $matchReport->referee1) == $referee->id)>
                     {{ $referee->fullName() }}
                 </option>
             @endforeach
         </select>
-        @error('referee_id')
+        @error('referee1')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
 
     <div>
-        <label for="venue_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Sede</label>
-        <select id="venue_id" name="venue_id" class="{{ $fieldClass }}">
-            <option value="">Sin sede asignada</option>
-            @foreach ($venues as $venue)
-                <option value="{{ $venue->id }}" @selected(old('venue_id', $matchReport->venue_id) == $venue->id)>
-                    {{ $venue->name }}
+        <label for="referee2" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Segundo árbitro</label>
+        <select id="referee2" name="referee2" class="{{ $fieldClass }}">
+            <option value="">Sin asignar</option>
+            @foreach ($referees as $referee)
+                <option value="{{ $referee->id }}" @selected(old('referee2', $matchReport->referee2) == $referee->id)>
+                    {{ $referee->fullName() }}
                 </option>
             @endforeach
         </select>
-        @error('venue_id')
+        @error('referee2')
+            <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+        @enderror
+    </div>
+
+    <div>
+        <label for="referee3" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Tercer árbitro</label>
+        <select id="referee3" name="referee3" class="{{ $fieldClass }}">
+            <option value="">Sin asignar</option>
+            @foreach ($referees as $referee)
+                <option value="{{ $referee->id }}" @selected(old('referee3', $matchReport->referee3) == $referee->id)>
+                    {{ $referee->fullName() }}
+                </option>
+            @endforeach
+        </select>
+        @error('referee3')
+            <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+        @enderror
+    </div>
+
+    <div>
+        <label for="referee4" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Cuarto árbitro</label>
+        <select id="referee4" name="referee4" class="{{ $fieldClass }}">
+            <option value="">Sin asignar</option>
+            @foreach ($referees as $referee)
+                <option value="{{ $referee->id }}" @selected(old('referee4', $matchReport->referee4) == $referee->id)>
+                    {{ $referee->fullName() }}
+                </option>
+            @endforeach
+        </select>
+        @error('referee4')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
@@ -78,33 +108,33 @@
     </div>
 
     <div>
-        <label for="home_score" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Goles del local</label>
+        <label for="local_score" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Goles del local</label>
         <input
-            id="home_score"
-            name="home_score"
+            id="local_score"
+            name="local_score"
             type="number"
             min="0"
             max="999"
-            value="{{ old('home_score', $matchReport->home_score) }}"
+            value="{{ old('local_score', $matchReport->local_score) }}"
             class="{{ $fieldClass }}"
         >
-        @error('home_score')
+        @error('local_score')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
 
     <div>
-        <label for="away_score" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Goles del visitante</label>
+        <label for="visitor_score" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Goles del visitante</label>
         <input
-            id="away_score"
-            name="away_score"
+            id="visitor_score"
+            name="visitor_score"
             type="number"
             min="0"
             max="999"
-            value="{{ old('away_score', $matchReport->away_score) }}"
+            value="{{ old('visitor_score', $matchReport->visitor_score) }}"
             class="{{ $fieldClass }}"
         >
-        @error('away_score')
+        @error('visitor_score')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
@@ -170,7 +200,7 @@
                         @endphp
                         <tr
                             data-player-row
-                            data-team-id="{{ $player->team_id }}"
+                            data-team-id="{{ $player->team?->id }}"
                             class="border-b border-gray-100 hover:bg-gray-50"
                         >
                             <td class="px-3 py-2">
@@ -185,8 +215,8 @@
                             <td class="px-3 py-2 text-gray-600">{{ $player->team?->name ?? '—' }}</td>
                             <td class="px-3 py-2 font-medium text-gray-800">
                                 {{ $player->fullName() }}
-                                @if ($player->jersey_number)
-                                    <span class="text-xs text-gray-400">#{{ $player->jersey_number }}</span>
+                                @if ($player->pivot?->jersey_number)
+                                    <span class="text-xs text-gray-400">#{{ $player->pivot->jersey_number }}</span>
                                 @endif
                             </td>
                             <td class="px-3 py-2 text-center">
@@ -248,14 +278,14 @@
 
             function syncPlayers() {
                 const option = matchSelect?.selectedOptions?.[0];
-                const homeTeamId = option?.dataset.homeTeamId;
-                const awayTeamId = option?.dataset.awayTeamId;
+                const localTeamId = option?.dataset.localTeamId;
+                const visitorTeamId = option?.dataset.visitorTeamId;
 
                 rows.forEach((row) => {
                     const visible = Boolean(
-                        homeTeamId
-                        && awayTeamId
-                        && (row.dataset.teamId === homeTeamId || row.dataset.teamId === awayTeamId)
+                        localTeamId
+                        && visitorTeamId
+                        && (row.dataset.teamId === localTeamId || row.dataset.teamId === visitorTeamId)
                     );
 
                     row.classList.toggle('hidden', !visible);

@@ -10,13 +10,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'tournament_id',
-    'home_team_id',
-    'away_team_id',
-    'venue_id',
-    'referee_id',
-    'match_date',
-    'home_goals',
-    'away_goals',
+    'local_team_id',
+    'visitor_team_id',
+    'field_id',
+    'date_time',
+    'local_goals',
+    'visitor_goals',
     'matchday',
     'status',
     'notes',
@@ -41,9 +40,9 @@ class Game extends Model
     protected function casts(): array
     {
         return [
-            'match_date' => 'datetime',
-            'home_goals' => 'integer',
-            'away_goals' => 'integer',
+            'date_time' => 'datetime',
+            'local_goals' => 'integer',
+            'visitor_goals' => 'integer',
             'matchday' => 'integer',
         ];
     }
@@ -53,24 +52,19 @@ class Game extends Model
         return $this->belongsTo(Tournament::class);
     }
 
-    public function homeTeam(): BelongsTo
+    public function localTeam(): BelongsTo
     {
-        return $this->belongsTo(Team::class, 'home_team_id');
+        return $this->belongsTo(Team::class, 'local_team_id');
     }
 
-    public function awayTeam(): BelongsTo
+    public function visitorTeam(): BelongsTo
     {
-        return $this->belongsTo(Team::class, 'away_team_id');
+        return $this->belongsTo(Team::class, 'visitor_team_id');
     }
 
-    public function venue(): BelongsTo
+    public function field(): BelongsTo
     {
-        return $this->belongsTo(Venue::class);
-    }
-
-    public function referee(): BelongsTo
-    {
-        return $this->belongsTo(Referee::class);
+        return $this->belongsTo(Field::class);
     }
 
     public function report(): HasOne
@@ -80,11 +74,11 @@ class Game extends Model
 
     public function scoreLabel(): string
     {
-        if ($this->home_goals === null || $this->away_goals === null) {
+        if (in_array($this->status, ['scheduled', 'postponed', 'cancelled'], true)) {
             return '—';
         }
 
-        return $this->home_goals.' - '.$this->away_goals;
+        return $this->local_goals.' - '.$this->visitor_goals;
     }
 
     public function statusLabel(): string

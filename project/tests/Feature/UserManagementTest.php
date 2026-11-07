@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Models\UserType;
+use App\Models\Language;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -22,11 +22,11 @@ class UserManagementTest extends TestCase
     public function test_se_puede_crear_un_usuario_con_los_campos_de_la_tabla(): void
     {
         $actor = User::factory()->create();
-        $type = UserType::factory()->create(['name' => 'Jugador']);
+        $language = Language::factory()->create();
 
         $this->actingAs($actor)
             ->post(route('users.store'), $this->userPayload([
-                'user_type_id' => $type->id,
+                'language_id' => $language->id,
                 'email' => 'ana.ruiz@example.com',
                 'phone' => '5551234567',
                 'is_active' => '1',
@@ -42,7 +42,7 @@ class UserManagementTest extends TestCase
         $this->assertSame('Ana Ruiz', $created->name);
         $this->assertSame('5551234567', $created->phone);
         $this->assertSame('America/Mexico_City', $created->time_zone);
-        $this->assertSame($type->id, $created->user_type_id);
+        $this->assertSame($language->id, $created->language_id);
         $this->assertTrue($created->is_active);
         $this->assertTrue(Hash::check('password123', $created->password));
     }
@@ -71,7 +71,7 @@ class UserManagementTest extends TestCase
             ['is_active', ['is_active' => 'quizas'], null],
             ['password', ['password' => ''], 'El password es obligatorio.'],
             ['password', ['password' => 'corta'], 'El password debe tener al menos 8 caracteres.'],
-            ['user_type_id', ['user_type_id' => 99999], 'El tipo de usuario no es válido.'],
+            ['language_id', ['language_id' => ''], 'El idioma es obligatorio.'],
             ['language_id', ['language_id' => 99999], 'El idioma no es válido.'],
             ['avatar', ['avatar' => UploadedFile::fake()->create('notas.pdf', 20, 'application/pdf')], 'El archivo debe ser una imagen.'],
             ['avatar', ['avatar' => UploadedFile::fake()->image('foto.jpg')->size(3000)], 'La imagen no puede superar 2 MB.'],
@@ -156,6 +156,7 @@ class UserManagementTest extends TestCase
             'name' => 'Ana Ruiz',
             'email' => 'ana.nueva@example.com',
             'phone' => '',
+            'language_id' => Language::factory()->create()->id,
             'time_zone' => 'America/Mexico_City',
             'is_active' => '1',
             'password' => 'password123',

@@ -6,17 +6,14 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'team_id',
-    'first_name',
-    'last_name',
-    'jersey_number',
-    'position',
-    'birth_date',
+    'person_id',
+    'type_id',
     'photo_url',
-    'status',
+    'goals',
 ])]
 class Player extends Model
 {
@@ -28,14 +25,20 @@ class Player extends Model
     protected function casts(): array
     {
         return [
-            'jersey_number' => 'integer',
-            'birth_date' => 'date',
+            'goals' => 'integer',
         ];
     }
 
-    public function team(): BelongsTo
+    public function person(): BelongsTo
     {
-        return $this->belongsTo(Team::class);
+        return $this->belongsTo(PersonData::class, 'person_id');
+    }
+
+    public function teams(): BelongsToMany
+    {
+        return $this->belongsToMany(Team::class, 'team_players')
+            ->withPivot(['captain', 'jersey_number'])
+            ->withTimestamps();
     }
 
     public function entries(): HasMany
@@ -45,6 +48,6 @@ class Player extends Model
 
     public function fullName(): string
     {
-        return trim($this->first_name.' '.$this->last_name);
+        return $this->person?->fullName() ?? 'Jugador #'.$this->id;
     }
 }

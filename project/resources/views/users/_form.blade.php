@@ -101,24 +101,9 @@
     </div>
 
     <div>
-        <label for="user_type_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Tipo de usuario</label>
-        <select id="user_type_id" name="user_type_id" class="{{ $fieldClass }}">
-            <option value="">Sin tipo</option>
-            @foreach ($userTypes as $userType)
-                <option value="{{ $userType->id }}" @selected(old('user_type_id', $user->user_type_id) == $userType->id)>
-                    {{ $userType->name }}
-                </option>
-            @endforeach
-        </select>
-        @error('user_type_id')
-            <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
-        @enderror
-    </div>
-
-    <div>
         <label for="language_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Idioma</label>
-        <select id="language_id" name="language_id" class="{{ $fieldClass }}">
-            <option value="">Sin idioma</option>
+        <select id="language_id" name="language_id" required class="{{ $fieldClass }}">
+            <option value="">Selecciona un idioma</option>
             @foreach ($languages as $language)
                 <option value="{{ $language->id }}" @selected(old('language_id', $user->language_id) == $language->id)>
                     {{ $language->name }}

@@ -10,13 +10,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'match_id',
-    'referee_id',
-    'venue_id',
     'match_date',
-    'home_score',
-    'away_score',
+    'local_score',
+    'visitor_score',
     'incidents',
     'status',
+    'referee1',
+    'referee2',
+    'referee3',
+    'referee4',
 ])]
 class MatchReport extends Model
 {
@@ -28,6 +30,8 @@ class MatchReport extends Model
         'cancelled' => 'Cancelada',
     ];
 
+    protected $table = 'match_sheets';
+
     /**
      * @return array<string, string>
      */
@@ -35,8 +39,12 @@ class MatchReport extends Model
     {
         return [
             'match_date' => 'datetime',
-            'home_score' => 'integer',
-            'away_score' => 'integer',
+            'local_score' => 'integer',
+            'visitor_score' => 'integer',
+            'referee1' => 'integer',
+            'referee2' => 'integer',
+            'referee3' => 'integer',
+            'referee4' => 'integer',
         ];
     }
 
@@ -45,28 +53,38 @@ class MatchReport extends Model
         return $this->belongsTo(Game::class, 'match_id');
     }
 
-    public function referee(): BelongsTo
+    public function mainReferee(): BelongsTo
     {
-        return $this->belongsTo(Referee::class);
+        return $this->belongsTo(Referee::class, 'referee1');
     }
 
-    public function venue(): BelongsTo
+    public function secondReferee(): BelongsTo
     {
-        return $this->belongsTo(Venue::class);
+        return $this->belongsTo(Referee::class, 'referee2');
+    }
+
+    public function thirdReferee(): BelongsTo
+    {
+        return $this->belongsTo(Referee::class, 'referee3');
+    }
+
+    public function fourthReferee(): BelongsTo
+    {
+        return $this->belongsTo(Referee::class, 'referee4');
     }
 
     public function entries(): HasMany
     {
-        return $this->hasMany(MatchReportPlayer::class);
+        return $this->hasMany(MatchReportPlayer::class, 'match_sheet_id');
     }
 
     public function scoreLabel(): string
     {
-        if ($this->home_score === null || $this->away_score === null) {
+        if ($this->local_score === null || $this->visitor_score === null) {
             return '—';
         }
 
-        return $this->home_score.' - '.$this->away_score;
+        return $this->local_score.' - '.$this->visitor_score;
     }
 
     public function statusLabel(): string

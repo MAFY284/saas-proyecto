@@ -6,7 +6,7 @@ use App\Models\Game;
 use App\Models\MatchReport;
 use App\Models\Player;
 use App\Models\Referee;
-use App\Models\Venue;
+use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -24,18 +24,17 @@ class MatchReportController extends Controller
         }
 
         $reports = MatchReport::query()
-            ->with(['game.homeTeam', 'game.awayTeam', 'referee', 'venue'])
+            ->with(['game.localTeam', 'game.visitorTeam', 'mainReferee.person'])
             ->when($search !== '', function ($query) use ($search) {
                 $like = '%'.addcslashes($search, '%_\\').'%';
 
                 $query->where(function ($query) use ($like) {
-                    $query->whereHas('game.homeTeam', fn ($query) => $query->where('name', 'like', $like))
-                        ->orWhereHas('game.awayTeam', fn ($query) => $query->where('name', 'like', $like))
-                        ->orWhereHas('referee', function ($query) use ($like) {
+                    $query->whereHas('game.localTeam', fn ($query) => $query->where('name', 'like', $like))
+                        ->orWhereHas('game.visitorTeam', fn ($query) => $query->where('name', 'like', $like))
+                        ->orWhereHas('mainReferee.person', function ($query) use ($like) {
                             $query->where('first_name', 'like', $like)
                                 ->orWhere('last_name', 'like', $like);
                         })
-                        ->orWhereHas('venue', fn ($query) => $query->where('name', 'like', $like))
                         ->orWhere('match_date', 'like', $like);
                 });
             })
@@ -60,9 +59,9 @@ class MatchReportController extends Controller
 
         $matchReport = new MatchReport([
             'match_id' => $match?->id,
-            'referee_id' => $match?->referee_id,
-            'venue_id' => $match?->venue_id,
-            'match_date' => $match?->match_date ?? now(),
+            'match_date' => $match?->date_time ?? now(),
+            'local_score' => $match?->local_goals,
+            'visitor_score' => $match?->visitor_goals,
             'status' => 'completed',
         ]);
 
@@ -146,7 +145,7 @@ class MatchReportController extends Controller
         $currentMatchId = $matchReport?->match_id;
 
         $matches = Game::query()
-            ->with(['homeTeam', 'awayTeam'])
+            ->with(['localTeam', 'visitorTeam'])
             ->where(function ($query) use ($currentMatchId) {
                 $query->whereDoesntHave('report');
 
@@ -154,14 +153,31 @@ class MatchReportController extends Controller
                     $query->orWhere('id', $currentMatchId);
                 }
             })
-            ->orderByDesc('match_date')
+            ->orderByDesc('date_time')
             ->get();
+
+        $referees = Referee::query()
+            ->with('person')
+            ->get()
+            ->sortBy(fn (Referee $referee) => $referee->fullName())
+            ->values();
+
+        $players = Team::query()
+            ->with(['players.person'])
+            ->get()
+            ->flatMap(function (Team $team) {
+                return $team->players->map(function (Player $player) use ($team) {
+                    $player->setRelation('team', $team);
+
+                    return $player;
+                });
+            })
+            ->values();
 
         return [
             'matches' => $matches,
-            'referees' => Referee::query()->orderBy('last_name')->orderBy('first_name')->get(),
-            'venues' => Venue::query()->orderBy('name')->get(),
-            'players' => Player::query()->with('team')->orderBy('team_id')->orderBy('last_name')->get(),
+            'referees' => $referees,
+            'players' => $players,
             'entries' => $matchReport?->exists
                 ? $matchReport->entries->keyBy('player_id')
                 : collect(),
@@ -180,7 +196,9 @@ class MatchReportController extends Controller
         }
 
         $validPlayerIds = Player::query()
-            ->whereIn('team_id', [$match->home_team_id, $match->away_team_id])
+            ->whereHas('teams', function ($query) use ($match) {
+                $query->whereIn('teams.id', [$match->local_team_id, $match->visitor_team_id]);
+            })
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all();
@@ -210,7 +228,6 @@ class MatchReportController extends Controller
 
             $report->entries()->create([
                 'player_id' => $player->id,
-                'team_id' => $player->team_id,
                 'is_starter' => ! empty($entry['is_starter']),
                 'goals' => (int) ($entry['goals'] ?? 0),
                 'yellow_cards' => (int) ($entry['yellow_cards'] ?? 0),
@@ -224,20 +241,25 @@ class MatchReportController extends Controller
      */
     private function validatedData(Request $request, ?MatchReport $matchReport = null): array
     {
-        return $request->validate([
+        $refereeExists = Rule::exists('players', 'id')
+            ->where(fn ($query) => $query->where('type_id', 'referee'));
+
+        $data = $request->validate([
             'match_id' => [
                 'required',
                 'integer',
                 'exists:matches,id',
-                Rule::unique('match_reports', 'match_id')->ignore($matchReport?->id),
+                Rule::unique('match_sheets', 'match_id')->ignore($matchReport?->id),
             ],
-            'referee_id' => ['nullable', 'integer', 'exists:referees,id'],
-            'venue_id' => ['nullable', 'integer', 'exists:venues,id'],
             'match_date' => ['required', 'date'],
-            'home_score' => ['nullable', 'integer', 'min:0', 'max:999'],
-            'away_score' => ['nullable', 'integer', 'min:0', 'max:999'],
+            'local_score' => ['nullable', 'integer', 'min:0', 'max:999'],
+            'visitor_score' => ['nullable', 'integer', 'min:0', 'max:999'],
             'incidents' => ['nullable', 'string', 'max:5000'],
             'status' => ['required', Rule::in(array_keys(MatchReport::STATUSES))],
+            'referee1' => ['required', 'integer', $refereeExists],
+            'referee2' => ['nullable', 'integer', $refereeExists],
+            'referee3' => ['nullable', 'integer', $refereeExists],
+            'referee4' => ['nullable', 'integer', $refereeExists],
             'players' => ['nullable', 'array'],
             'players.*.selected' => ['nullable', 'boolean'],
             'players.*.is_starter' => ['nullable', 'boolean'],
@@ -248,17 +270,20 @@ class MatchReportController extends Controller
             'match_id.required' => 'El partido es obligatorio.',
             'match_id.exists' => 'El partido no es válido.',
             'match_id.unique' => 'Ese partido ya tiene un acta registrada.',
-            'referee_id.exists' => 'El árbitro no es válido.',
-            'venue_id.exists' => 'La sede no es válida.',
             'match_date.required' => 'La fecha del acta es obligatoria.',
             'match_date.date' => 'La fecha del acta no es válida.',
-            'home_score.integer' => 'Los goles del local deben ser un número entero.',
-            'home_score.min' => 'Los goles del local no pueden ser negativos.',
-            'away_score.integer' => 'Los goles del visitante deben ser un número entero.',
-            'away_score.min' => 'Los goles del visitante no pueden ser negativos.',
+            'local_score.integer' => 'Los goles del local deben ser un número entero.',
+            'local_score.min' => 'Los goles del local no pueden ser negativos.',
+            'visitor_score.integer' => 'Los goles del visitante deben ser un número entero.',
+            'visitor_score.min' => 'Los goles del visitante no pueden ser negativos.',
             'incidents.max' => 'Las incidencias no pueden superar 5000 caracteres.',
             'status.required' => 'El estado es obligatorio.',
             'status.in' => 'El estado no es válido.',
+            'referee1.required' => 'El árbitro principal es obligatorio.',
+            'referee1.exists' => 'El árbitro principal no es válido.',
+            'referee2.exists' => 'El segundo árbitro no es válido.',
+            'referee3.exists' => 'El tercer árbitro no es válido.',
+            'referee4.exists' => 'El cuarto árbitro no es válido.',
             'players.array' => 'Los jugadores no tienen un formato válido.',
             'players.*.goals.integer' => 'Los goles de un jugador deben ser un número entero.',
             'players.*.goals.min' => 'Los goles de un jugador no pueden ser negativos.',
@@ -267,5 +292,10 @@ class MatchReportController extends Controller
             'players.*.red_cards.integer' => 'Las rojas deben ser un número entero.',
             'players.*.red_cards.min' => 'Las rojas no pueden ser negativas.',
         ]);
+
+        $data['local_score'] = $data['local_score'] ?? 0;
+        $data['visitor_score'] = $data['visitor_score'] ?? 0;
+
+        return $data;
     }
 }

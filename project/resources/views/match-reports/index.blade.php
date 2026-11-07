@@ -153,13 +153,13 @@
                             {{ $report->match_date?->format('d/m/Y H:i') ?? '—' }}
                         </td>
                         <td class="px-3 py-3 font-medium text-gray-800">
-                            {{ $report->game?->homeTeam?->name ?? '—' }}
+                            {{ $report->game?->localTeam?->name ?? '—' }}
                             <span class="px-1 text-gray-400">vs</span>
-                            {{ $report->game?->awayTeam?->name ?? '—' }}
+                            {{ $report->game?->visitorTeam?->name ?? '—' }}
                         </td>
                         <td class="px-3 py-3 text-center font-semibold tabular-nums text-gray-800">{{ $report->scoreLabel() }}</td>
-                        <td class="px-3 py-3 text-gray-600">{{ $report->referee?->fullName() ?? '—' }}</td>
-                        <td class="px-3 py-3 text-gray-600">{{ $report->venue?->name ?? '—' }}</td>
+                        <td class="px-3 py-3 text-gray-600">{{ $report->mainReferee?->fullName() ?? '—' }}</td>
+                        <td class="px-3 py-3 text-gray-600">{{ $report->game?->field?->name ?? '—' }}</td>
                         <td class="px-3 py-3">
                             <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold {{ $report->statusClasses() }}">
                                 {{ $report->statusLabel() }}

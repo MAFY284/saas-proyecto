@@ -148,7 +148,6 @@
                     <th class="px-3 py-3 text-center">Resultado</th>
                     <th class="px-3 py-3">Visitante</th>
                     <th class="px-3 py-3">Sede</th>
-                    <th class="px-3 py-3">Árbitro</th>
                     <th class="px-3 py-3">Estado</th>
                 </tr>
             </thead>
@@ -168,14 +167,13 @@
                             >
                         </td>
                         <td class="px-3 py-3 text-gray-600">
-                            {{ $game->match_date?->format('d/m/Y H:i') ?? '—' }}
+                            {{ $game->date_time?->format('d/m/Y H:i') ?? '—' }}
                         </td>
                         <td class="px-3 py-3 text-gray-600">{{ $game->tournament?->name ?? '—' }}</td>
-                        <td class="px-3 py-3 font-medium text-gray-800">{{ $game->homeTeam?->name ?? '—' }}</td>
+                        <td class="px-3 py-3 font-medium text-gray-800">{{ $game->localTeam?->name ?? '—' }}</td>
                         <td class="px-3 py-3 text-center font-semibold tabular-nums text-gray-800">{{ $game->scoreLabel() }}</td>
-                        <td class="px-3 py-3 font-medium text-gray-800">{{ $game->awayTeam?->name ?? '—' }}</td>
-                        <td class="px-3 py-3 text-gray-600">{{ $game->venue?->name ?? '—' }}</td>
-                        <td class="px-3 py-3 text-gray-600">{{ $game->referee?->fullName() ?? '—' }}</td>
+                        <td class="px-3 py-3 font-medium text-gray-800">{{ $game->visitorTeam?->name ?? '—' }}</td>
+                        <td class="px-3 py-3 text-gray-600">{{ $game->field?->name ?? '—' }}</td>
                         <td class="px-3 py-3">
                             <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold {{ $game->statusClasses() }}">
                                 {{ $game->statusLabel() }}
@@ -184,7 +182,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="px-3 py-8 text-center text-gray-500">No hay partidos registrados.</td>
+                        <td colspan="8" class="px-3 py-8 text-center text-gray-500">No hay partidos registrados.</td>
                     </tr>
                 @endforelse
             </tbody>
