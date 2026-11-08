@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MatchReportPlayer;
 use App\Models\PersonData;
 use App\Models\Player;
 use App\Models\Team;
@@ -36,7 +37,14 @@ class PlayerController extends Controller
             ->paginate(8)
             ->withQueryString();
 
-        return view('players.index', compact('players', 'search'));
+        $stats = MatchReportPlayer::query()
+            ->whereIn('player_id', $players->pluck('id'))
+            ->selectRaw('player_id, COUNT(*) as matches_played, COALESCE(SUM(goals), 0) as total_goals, COALESCE(SUM(yellow_cards), 0) as total_yellow, COALESCE(SUM(red_cards), 0) as total_red')
+            ->groupBy('player_id')
+            ->get()
+            ->keyBy('player_id');
+
+        return view('players.index', compact('players', 'search', 'stats'));
     }
 
     public function create()
@@ -62,7 +70,6 @@ class PlayerController extends Controller
             $player = new Player([
                 'person_id' => $person->id,
                 'type_id' => $data['type_id'],
-                'goals' => $data['goals'] ?? null,
             ]);
 
             if ($request->hasFile('photo')) {
@@ -108,7 +115,6 @@ class PlayerController extends Controller
 
             $player->fill([
                 'type_id' => $data['type_id'],
-                'goals' => $data['goals'] ?? null,
             ]);
 
             if ($request->hasFile('photo')) {
@@ -215,7 +221,6 @@ class PlayerController extends Controller
                     ->where('person_id', $player?->person_id)
                     ->ignore($player?->id),
             ],
-            'goals' => ['nullable', 'integer', 'min:0'],
             'photo' => ['nullable', 'image', 'max:2048'],
             'team_id' => ['nullable', 'integer', 'exists:teams,id'],
             'jersey_number' => ['nullable', 'integer', 'min:0', 'max:99'],
@@ -229,8 +234,6 @@ class PlayerController extends Controller
             'type_id.required' => 'El tipo es obligatorio.',
             'type_id.in' => 'El tipo no es válido.',
             'type_id.unique' => 'Esta persona ya tiene ese tipo registrado.',
-            'goals.integer' => 'Los goles deben ser un número.',
-            'goals.min' => 'Los goles no pueden ser negativos.',
             'photo.image' => 'El archivo debe ser una imagen.',
             'photo.max' => 'La imagen no puede superar 2 MB.',
             'team_id.exists' => 'El equipo no es válido.',

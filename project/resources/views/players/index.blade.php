@@ -104,13 +104,18 @@
                     <th class="px-3 py-3">Nombre</th>
                     <th class="px-3 py-3">Tipo</th>
                     <th class="px-3 py-3">Equipo</th>
-                    <th class="px-3 py-3">Goles</th>
+                    <th class="px-3 py-3">Estadísticas</th>
                     <th class="px-3 py-3">Fecha de creación</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($players as $player)
-                    @php $team = $player->teams->first(); @endphp
+                    @php
+                        $team = $player->teams->first();
+                        $s = $stats[$player->id] ?? null;
+                        $matchesPlayed = (int) ($s?->matches_played ?? 0);
+                                              $goalsShown = (int) ($s?->total_goals ?? 0);
+                    @endphp
                     <tr
                         data-edit-url="{{ route('players.edit', $player) }}"
                         class="player-row cursor-pointer border-b border-gray-100 hover:bg-gray-50"
@@ -146,7 +151,19 @@
                                 —
                             @endif
                         </td>
-                        <td class="px-3 py-3 text-gray-600">{{ $player->goals ?? 0 }}</td>
+                        <td class="px-3 py-3" onclick="event.stopPropagation()">
+                            <button
+                                type="button"
+                                class="stats-btn inline-flex cursor-pointer items-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                                data-name="{{ $player->fullName() }}"
+                                data-matches="{{ $matchesPlayed }}"
+                                data-goals="{{ $goalsShown }}"
+                                data-yellow="{{ (int) ($s?->total_yellow ?? 0) }}"
+                                data-red="{{ (int) ($s?->total_red ?? 0) }}"
+                            >
+                                Ver estadísticas
+                            </button>
+                        </td>
                         <td class="px-3 py-3 text-gray-600">{{ $player->created_at?->format('d/m/Y H:i') }}</td>
                     </tr>
                 @empty
@@ -157,6 +174,45 @@
             </tbody>
         </table>
     </div>
+
+    <div
+        id="stats-modal"
+        class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="stats-title"
+    >
+        <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+            <div class="flex items-start justify-between gap-4">
+                <h2 id="stats-title" class="text-lg font-semibold text-gray-800"></h2>
+                <button
+                    type="button"
+                    id="stats-close"
+                    class="cursor-pointer border-0 bg-transparent text-2xl leading-none text-gray-400 hover:text-gray-600"
+                    aria-label="Cerrar"
+                >&times;</button>
+            </div>
+
+            <dl class="mt-4 grid grid-cols-2 gap-3 text-center">
+                <div class="rounded-lg bg-gray-50 p-3">
+                    <dt class="text-xs uppercase tracking-wide text-gray-500">Partidos</dt>
+                    <dd id="stat-matches" class="mt-1 text-2xl font-semibold text-gray-800">0</dd>
+                </div>
+                <div class="rounded-lg bg-gray-50 p-3">
+                    <dt class="text-xs uppercase tracking-wide text-gray-500">Goles</dt>
+                    <dd id="stat-goals" class="mt-1 text-2xl font-semibold text-gray-800">0</dd>
+                </div>
+                <div class="rounded-lg bg-yellow-50 p-3">
+                    <dt class="text-xs uppercase tracking-wide text-yellow-700">Amarillas</dt>
+                    <dd id="stat-yellow" class="mt-1 text-2xl font-semibold text-gray-800">0</dd>
+                </div>
+                <div class="rounded-lg bg-red-50 p-3">
+                    <dt class="text-xs uppercase tracking-wide text-red-700">Rojas</dt>
+                    <dd id="stat-red" class="mt-1 text-2xl font-semibold text-gray-800">0</dd>
+                </div>
+            </dl>
+        </div>
+    </div>
 @endsection
 
 @push('scripts')
@@ -166,6 +222,7 @@
         const bulkMenu = document.getElementById('bulk-menu');
         const bulkToggle = document.getElementById('bulk-menu-toggle');
         const bulkPanel = document.getElementById('bulk-menu-panel');
+        const statsModal = document.getElementById('stats-modal');
 
         function setBulkMenuOpen(open) {
             if (!bulkPanel || !bulkToggle) {
@@ -193,6 +250,21 @@
                 const enabled = checks();
                 selectAll.checked = enabled.length > 0 && enabled.every((input) => input.checked);
             }
+        }
+
+        function openStats(button) {
+            document.getElementById('stats-title').textContent = 'Estadísticas de ' + button.dataset.name;
+            document.getElementById('stat-matches').textContent = button.dataset.matches;
+            document.getElementById('stat-goals').textContent = button.dataset.goals;
+            document.getElementById('stat-yellow').textContent = button.dataset.yellow;
+            document.getElementById('stat-red').textContent = button.dataset.red;
+            statsModal.classList.remove('hidden');
+            statsModal.classList.add('flex');
+        }
+
+        function closeStats() {
+            statsModal.classList.add('hidden');
+            statsModal.classList.remove('flex');
         }
 
         bulkToggle?.addEventListener('click', (event) => {
@@ -225,6 +297,27 @@
 
                 window.location.href = row.dataset.editUrl;
             });
+        });
+
+        document.querySelectorAll('.stats-btn').forEach((button) => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                openStats(button);
+            });
+        });
+
+        document.getElementById('stats-close')?.addEventListener('click', closeStats);
+
+        statsModal?.addEventListener('click', (event) => {
+            if (event.target === statsModal) {
+                closeStats();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeStats();
+            }
         });
 
         refreshActions();

@@ -53,12 +53,6 @@
     </div>
 
     <div>
-        <label for="goals" class="{{ $label }}">Goles</label>
-        <input id="goals" type="number" min="0" name="goals" value="{{ old('goals', $player->goals) }}" class="{{ $input }}">
-        @error('goals') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
-    </div>
-
-    <div>
         <label for="team_id" class="{{ $label }}">Equipo</label>
         <select id="team_id" name="team_id" class="{{ $input }}">
             <option value="">Sin equipo</option>
