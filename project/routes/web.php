@@ -3,6 +3,7 @@
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\MatchReportController;
+use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\RegisterController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
@@ -34,6 +35,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('match-reports', MatchReportController::class)
         ->parameters(['match-reports' => 'matchReport'])
         ->except(['show', 'destroy']);
+
+    Route::delete('players/{player?}', [PlayerController::class, 'destroy'])->name('players.destroy');
+    Route::resource('players', PlayerController::class)->except(['show', 'destroy']);
 
     Route::post('/logout', [LoginController::class, 'destroy'])
     ->name('logout');
