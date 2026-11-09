@@ -6,6 +6,7 @@ use App\Http\Controllers\MatchReportController;
 use App\Http\Controllers\RegisterController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\TeamController;
 
 Route::get('/', function () {
     return view('home');
@@ -24,6 +25,7 @@ Route::middleware('auth')->group(function () {
     Route::post('users/process', [UserController::class, 'process'])->name('users.process');
     Route::delete('users/{user?}', [UserController::class, 'destroy'])->name('users.destroy');
     Route::resource('users', UserController::class)->except(['show', 'destroy']);
+    Route::resource('teams', TeamController::class)->except(['show']);
 
     Route::delete('matches/{game?}', [MatchController::class, 'destroy'])->name('matches.destroy');
     Route::resource('matches', MatchController::class)
