@@ -50,6 +50,27 @@ class AppServiceProvider extends ServiceProvider
                             $link('Actas', 'match-reports.index', 'GET', 'match-reports.*'),
                         ],
                     ],
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    
+                    [
+                        'id' => 'leagues',
+                        'label' => 'Ligas',
+                        'url' => route('leagues.index'),
+                        'is_active' => request()->routeIs('leagues.*'),
+                        'items' => [],
+                    ],
                 ] : [],
                 'accountMenus' => auth()->check() ? [
                     [
