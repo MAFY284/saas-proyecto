@@ -53,6 +53,7 @@
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6-9.75-6-9.75-6Z" />
                         <circle cx="12" cy="12" r="2.5" />
+                        <path data-password-eye-slash stroke-linecap="round" d="m3 3 18 18" />
                     </svg>
                 </button>
             </div>
@@ -80,6 +81,7 @@
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6-9.75-6-9.75-6Z" />
                         <circle cx="12" cy="12" r="2.5" />
+                        <path data-password-eye-slash stroke-linecap="round" d="m3 3 18 18" />
                     </svg>
                 </button>
             </div>

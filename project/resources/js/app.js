@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const isVisible = input.type === 'password';
             input.type = isVisible ? 'text' : 'password';
+            toggle.querySelector('[data-password-eye-slash]')?.classList.toggle('hidden', isVisible);
             toggle.setAttribute('aria-pressed', isVisible ? 'true' : 'false');
             toggle.setAttribute('aria-label', isVisible ? 'Ocultar contraseña' : 'Mostrar contraseña');
             toggle.setAttribute('title', isVisible ? 'Ocultar contraseña' : 'Mostrar contraseña');
