@@ -33,7 +33,7 @@
 
         <div class="mb-[0.9rem]">
             <label for="password" class="mb-[0.3rem] block text-[0.9rem] font-semibold text-gray-700">Password</label>
-            <div class="relative">
+            <div style="position: relative">
                 <input
                     id="password"
                     name="password"
@@ -48,7 +48,8 @@
                     aria-pressed="false"
                     aria-label="Mostrar contraseña"
                     title="Mostrar contraseña"
-                    class="absolute inset-y-0 right-0 flex cursor-pointer items-center px-3 text-gray-600"
+                    style="position: absolute; top: 0; right: 0; bottom: 0; display: flex; align-items: center"
+                    class="cursor-pointer px-3 text-gray-600"
                 >
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6-9.75-6-9.75-6Z" />
@@ -61,7 +62,7 @@
 
         <div class="mb-[0.9rem]">
             <label for="password_confirmation" class="mb-[0.3rem] block text-[0.9rem] font-semibold text-gray-700">Confirmar password</label>
-            <div class="relative">
+            <div style="position: relative">
                 <input
                     id="password_confirmation"
                     name="password_confirmation"
@@ -76,7 +77,8 @@
                     aria-pressed="false"
                     aria-label="Mostrar contraseña"
                     title="Mostrar contraseña"
-                    class="absolute inset-y-0 right-0 flex cursor-pointer items-center px-3 text-gray-600"
+                    style="position: absolute; top: 0; right: 0; bottom: 0; display: flex; align-items: center"
+                    class="cursor-pointer px-3 text-gray-600"
                 >
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6-9.75-6-9.75-6Z" />
