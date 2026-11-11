@@ -1,4 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-password-toggle]').forEach((toggle) => {
+        toggle.addEventListener('click', () => {
+            const input = document.getElementById(toggle.dataset.passwordToggle);
+
+            if (!(input instanceof HTMLInputElement)) {
+                return;
+            }
+
+            const isVisible = input.type === 'password';
+            input.type = isVisible ? 'text' : 'password';
+            toggle.querySelector('[data-password-eye-slash]')?.classList.toggle('hidden', isVisible);
+            toggle.setAttribute('aria-pressed', isVisible ? 'true' : 'false');
+            toggle.setAttribute('aria-label', isVisible ? 'Ocultar contraseña' : 'Mostrar contraseña');
+            toggle.setAttribute('title', isVisible ? 'Ocultar contraseña' : 'Mostrar contraseña');
+        });
+    });
+
     const navbar = document.querySelector('#navbar');
 
     if (!navbar) {
