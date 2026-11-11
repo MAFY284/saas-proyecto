@@ -41,14 +41,38 @@ class AppServiceProvider extends ServiceProvider
                         'items' => [],
                     ],
                     [
-                        'id' => 'sports',
-                        'label' => 'Gestión',
-                        'url' => route('matches.index'),
-                        'is_active' => request()->routeIs('matches.*', 'match-reports.*'),
-                        'items' => [
-                            $link('Partidos', 'matches.index', 'GET', 'matches.*'),
-                            $link('Actas', 'match-reports.index', 'GET', 'match-reports.*'),
+                            'id' => 'sports',
+                            'label' => 'Gestión',
+                            'url' => route('matches.index'),
+                            'is_active' => request()->routeIs('matches.*', 'match-reports.*', 'teams.*', 'players.*'),
+                            'items' => [
+                                $link('Partidos', 'matches.index', 'GET', 'matches.*'),
+                                $link('Actas', 'match-reports.index', 'GET', 'match-reports.*'),
+                                $link('Equipos', 'teams.index', 'GET', 'teams.*'),
+                                $link('Jugadores', 'players.index', 'GET', 'players.*'),
+
                         ],
+                    ],
+
+
+
+
+
+
+
+
+
+
+
+
+
+                    
+                    [
+                        'id' => 'leagues',
+                        'label' => 'Ligas',
+                        'url' => route('leagues.index'),
+                        'is_active' => request()->routeIs('leagues.*'),
+                        'items' => [],
                     ],
                 ] : [],
                 'accountMenus' => auth()->check() ? [
