@@ -31,9 +31,9 @@
             >
         </p>
 
-        <p class="mb-[0.9rem]">
+        <div class="mb-[0.9rem]">
             <label for="password" class="mb-[0.3rem] block text-[0.9rem] font-semibold text-gray-700">Password</label>
-            <div class="relative">
+            <div style="position: relative">
                 <input
                     id="password"
                     name="password"
@@ -43,12 +43,13 @@
                 >
                 <button
                     type="button"
-                    data-password-toggle="password"
-                    aria-label="Mostrar contraseña"
-                    title="Mostrar contraseña"
+                    data-password-toggle
                     aria-controls="password"
                     aria-pressed="false"
-                    class="absolute inset-y-0 right-0 flex cursor-pointer items-center px-3 text-gray-600 hover:text-gray-900"
+                    aria-label="Mostrar contraseña"
+                    title="Mostrar contraseña"
+                    style="position: absolute; top: 0; right: 0; bottom: 0; display: flex; align-items: center"
+                    class="cursor-pointer px-3 text-gray-600"
                 >
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6-9.75-6-9.75-6Z" />
@@ -57,11 +58,11 @@
                     </svg>
                 </button>
             </div>
-        </p>
+        </div>
 
-        <p class="mb-[0.9rem]">
+        <div class="mb-[0.9rem]">
             <label for="password_confirmation" class="mb-[0.3rem] block text-[0.9rem] font-semibold text-gray-700">Confirmar password</label>
-            <div class="relative">
+            <div style="position: relative">
                 <input
                     id="password_confirmation"
                     name="password_confirmation"
@@ -71,12 +72,13 @@
                 >
                 <button
                     type="button"
-                    data-password-toggle="password_confirmation"
-                    aria-label="Mostrar contraseña"
-                    title="Mostrar contraseña"
+                    data-password-toggle
                     aria-controls="password_confirmation"
                     aria-pressed="false"
-                    class="absolute inset-y-0 right-0 flex cursor-pointer items-center px-3 text-gray-600 hover:text-gray-900"
+                    aria-label="Mostrar contraseña"
+                    title="Mostrar contraseña"
+                    style="position: absolute; top: 0; right: 0; bottom: 0; display: flex; align-items: center"
+                    class="cursor-pointer px-3 text-gray-600"
                 >
                     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6-9.75-6-9.75-6Z" />
@@ -85,7 +87,7 @@
                     </svg>
                 </button>
             </div>
-        </p>
+        </div>
 
         @if ($errors->any())
             <ul class="mb-[0.9rem] list-disc pl-5 text-left text-red-700">
@@ -102,4 +104,22 @@
             Crear cuenta
         </button>
     </form>
+
+    <script>
+        document.querySelectorAll('[data-password-toggle]').forEach((toggle) => {
+            toggle.addEventListener('click', () => {
+                const input = document.getElementById(toggle.getAttribute('aria-controls'));
+                if (!(input instanceof HTMLInputElement)) {
+                    return;
+                }
+
+                const isVisible = input.type === 'password';
+                input.type = isVisible ? 'text' : 'password';
+                toggle.querySelector('[data-password-eye-slash]')?.classList.toggle('hidden', isVisible);
+                toggle.setAttribute('aria-pressed', isVisible ? 'true' : 'false');
+                toggle.setAttribute('aria-label', isVisible ? 'Ocultar contraseña' : 'Mostrar contraseña');
+                toggle.setAttribute('title', isVisible ? 'Ocultar contraseña' : 'Mostrar contraseña');
+            });
+        });
+    </script>
 @endsection
