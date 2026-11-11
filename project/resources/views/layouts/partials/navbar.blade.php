@@ -26,7 +26,7 @@
                 @if ($group['items'] === [])
                     <a
                         href="{{ $group['url'] }}"
-                        class="w-full text-[0.95rem] no-underline md:w-auto {{ $group['is_active'] ? 'text-white' : 'text-gray-300 hover:text-white' }}"
+                        class="inline-flex w-full items-center font-sans text-[0.95rem] font-normal leading-6 no-underline md:w-auto {{ $group['is_active'] ? 'text-white' : 'text-gray-300 hover:text-white' }}"
                     >
                         {{ $group['label'] }}
                     </a>
@@ -34,7 +34,7 @@
                     <div class="group/nav relative w-full md:w-auto" data-submenu>
                         <button
                             type="button"
-                            class="submenu-toggle inline-flex w-full cursor-pointer items-center border-0 bg-transparent p-0 text-left text-[0.95rem] md:w-auto {{ $group['is_active'] ? 'text-white' : 'text-gray-300 hover:text-white' }}"
+                            class="submenu-toggle inline-flex w-full cursor-pointer items-center border-0 bg-transparent p-0 text-left font-sans text-[0.95rem] font-normal leading-6 md:w-auto {{ $group['is_active'] ? 'text-white' : 'text-gray-300 hover:text-white' }}"
                             aria-expanded="false"
                             aria-controls="submenu-{{ $group['id'] }}"
                             aria-haspopup="true"

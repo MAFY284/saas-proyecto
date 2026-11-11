@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Language;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -25,6 +26,7 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
+            'language_id' => Language::factory(),
             'name' => fake()->name(),
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),

@@ -13,7 +13,6 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
-    'user_type_id',
     'language_id',
     'name',
     'first_name',
