@@ -14,6 +14,7 @@
                 id="name"
                 name="name"
                 value="{{ old('name') }}"
+                minlength="3"
                 required
                 class="w-full rounded-lg border border-gray-300 px-[0.7rem] py-[0.55rem] font-sans focus:border-blue-600 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-blue-600"
             >
@@ -37,6 +38,7 @@
                 id="password"
                 name="password"
                 type="password"
+                minlength="8"
                 required
                 class="w-full rounded-lg border border-gray-300 px-[0.7rem] py-[0.55rem] font-sans focus:border-blue-600 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-blue-600"
             >
@@ -48,6 +50,7 @@
                 id="password_confirmation"
                 name="password_confirmation"
                 type="password"
+                minlength="8"
                 required
                 class="w-full rounded-lg border border-gray-300 px-[0.7rem] py-[0.55rem] font-sans focus:border-blue-600 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-blue-600"
             >

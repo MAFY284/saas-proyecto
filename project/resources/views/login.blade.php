@@ -19,6 +19,9 @@
                 class="w-full rounded-lg border border-gray-300 px-[0.7rem] py-[0.55rem] font-sans focus:border-blue-600 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-blue-600"
             >
         </p>
+        @error('email')
+            <p class="mb-[0.9rem] -mt-[0.5rem] text-[0.85rem] text-red-700">{{ $message }}</p>
+        @enderror
 
         <p class="mb-[0.9rem]">
             <label for="password" class="mb-[0.3rem] block text-[0.9rem] font-semibold text-gray-700">Password</label>
@@ -30,6 +33,9 @@
                 class="w-full rounded-lg border border-gray-300 px-[0.7rem] py-[0.55rem] font-sans focus:border-blue-600 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-blue-600"
             >
         </p>
+        @error('password')
+            <p class="mb-[0.9rem] -mt-[0.5rem] text-[0.85rem] text-red-700">{{ $message }}</p>
+        @enderror
 
         <p class="mb-[0.9rem]">
             <label class="inline-flex items-center gap-2 text-[0.9rem] font-normal text-gray-700">
@@ -37,10 +43,6 @@
                 Recordarme
             </label>
         </p>
-
-        @error('email')
-            <p class="mb-[0.9rem] text-[0.9rem] text-red-700">{{ $message }}</p>
-        @enderror
 
         <button
             type="submit"
