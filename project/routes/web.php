@@ -10,6 +10,7 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\FieldController;
 use App\Http\Controllers\PlayerController; #importacion PlayerController-Javi
 use App\Http\Controllers\PositionController; #importacion PositionController-Javi
+use App\Http\Controllers\RefereeCardController;
 
 Route::get('/', function () {
     return view('home');
@@ -29,7 +30,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('users/{user?}', [UserController::class, 'destroy'])->name('users.destroy');
     Route::resource('users', UserController::class)->except(['show', 'destroy']);
     Route::resource('teams', TeamController::class)->except(['show']);
-    Route::resource('players', PlayerController::class)->except(['show']);
+    Route::delete('players/bulk', [PlayerController::class, 'destroySelected'])
+        ->name('players.destroy-selected');
+    Route::resource('players', PlayerController::class)
+        ->except(['show']);
 
     Route::delete('matches/{game?}', [MatchController::class, 'destroy'])->name('matches.destroy');
     Route::resource('matches', MatchController::class)
@@ -39,6 +43,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('match-reports/{matchReport?}', [MatchReportController::class, 'destroy'])->name('match-reports.destroy');
     Route::resource('match-reports', MatchReportController::class)
         ->parameters(['match-reports' => 'matchReport'])
+        ->except(['show', 'destroy']);
+
+    Route::delete('referee-cards/{refereeCard?}', [RefereeCardController::class, 'destroy'])->name('referee-cards.destroy');
+    Route::resource('referee-cards', RefereeCardController::class)
+        ->parameters(['referee-cards' => 'refereeCard'])
         ->except(['show', 'destroy']);
 
     Route::post('/logout', [LoginController::class, 'destroy'])

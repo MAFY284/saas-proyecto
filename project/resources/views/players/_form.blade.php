@@ -88,18 +88,29 @@
         </label>
 
         <div class="flex items-center gap-4">
-            <div class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-gray-200 bg-gray-100">
+            <div
+                class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-gray-200 bg-gray-100"
+                style="width: 80px; height: 80px; min-width: 80px; flex: 0 0 80px; overflow: hidden; border-radius: 50%; display: flex; align-items: center; justify-content: center;"
+            >
                 <img
                     id="player-photo-preview"
-                    src="{{ $currentPhotoUrl ?? '' }}"
+                    @if ($currentPhotoUrl)
+                        src="{{ $currentPhotoUrl }}"
+                    @endif
                     data-original-url="{{ $currentPhotoUrl ?? '' }}"
-                    alt="Vista previa de la fotografía del jugador"
+                    alt="Fotografía del jugador"
+                    width="80"
+                    height="80"
                     class="h-full w-full object-cover {{ $currentPhotoUrl ? '' : 'hidden' }}"
+                    style="display: {{ $currentPhotoUrl ? 'block' : 'none' }}; width: 80px; height: 80px; max-width: 80px; max-height: 80px; object-fit: cover; border-radius: 50%;"
                 >
-                <div id="player-photo-placeholder"
+                <div
+                    id="player-photo-placeholder"
                     class="flex h-full w-full items-center justify-center text-gray-400 {{ $currentPhotoUrl ? 'hidden' : '' }}"
-                    aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-10 w-10">
+                    style="display: {{ $currentPhotoUrl ? 'none' : 'flex' }}; width: 80px; height: 80px; border-radius: 50%; align-items: center; justify-content: center;"
+                    aria-hidden="true"
+                >
+                    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#9ca3af" stroke-width="1.5" class="h-10 w-10">
                         <circle cx="12" cy="8" r="4"></circle>
                         <path stroke-linecap="round" d="M4.5 21a7.5 7.5 0 0 1 15 0"></path>
                     </svg>
@@ -148,6 +159,16 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Solo letras Unicode (incluye ñ y acentos) y espacios en nombre y apellidos.
+    ['first_name', 'last_name'].forEach(function (id) {
+        const input = document.getElementById(id);
+        if (!input) return;
+
+        input.addEventListener('input', function () {
+            input.value = input.value.replace(/[^\p{L} ]/gu, '');
+        });
+    });
+
     const fileInput = document.getElementById('photo');
     const preview = document.getElementById('player-photo-preview');
     const placeholder = document.getElementById('player-photo-placeholder');
@@ -169,11 +190,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (url) {
             preview.src = url;
             preview.classList.remove('hidden');
+            preview.style.display = 'block';
             placeholder.classList.add('hidden');
+            placeholder.style.display = 'none';
         } else {
             preview.removeAttribute('src');
             preview.classList.add('hidden');
+            preview.style.display = 'none';
             placeholder.classList.remove('hidden');
+            placeholder.style.display = 'flex';
         }
     }
 

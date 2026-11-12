@@ -52,15 +52,18 @@ class UserManagementTest extends TestCase
         $actor = User::factory()->create();
         User::factory()->create(['email' => 'ana.ruiz@example.com']);
 
-        $longText = str_repeat('a', 256);
+        $tooLongName = str_repeat('a', 51);
 
         $cases = [
             ['first_name', ['first_name' => ''], 'El nombre es obligatorio.'],
             ['last_name', ['last_name' => ''], 'El apellido es obligatorio.'],
             ['name', ['name' => ''], 'El nombre visible es obligatorio.'],
-            ['first_name', ['first_name' => $longText], null],
-            ['last_name', ['last_name' => $longText], null],
-            ['name', ['name' => $longText], null],
+            ['first_name', ['first_name' => 'A'], 'El nombre debe tener al menos 2 caracteres.'],
+            ['last_name', ['last_name' => 'A'], 'El apellido debe tener al menos 2 caracteres.'],
+            ['name', ['name' => 'A'], 'El nombre visible debe tener al menos 2 caracteres.'],
+            ['first_name', ['first_name' => $tooLongName], 'El nombre no puede superar 50 caracteres.'],
+            ['last_name', ['last_name' => $tooLongName], 'El apellido no puede superar 50 caracteres.'],
+            ['name', ['name' => $tooLongName], 'El nombre visible no puede superar 50 caracteres.'],
             ['email', ['email' => ''], 'El email es obligatorio.'],
             ['email', ['email' => 'no-es-correo'], 'El email no es válido.'],
             ['email', ['email' => 'ana.ruiz@example.com'], 'El email ya está en uso.'],
@@ -122,6 +125,24 @@ class UserManagementTest extends TestCase
         $this->assertSame($hash, $user->password);
         $this->assertSame('5559999', $user->phone);
         $this->assertFalse($user->is_active);
+    }
+
+    public function test_editar_rechaza_correos_invalidos_y_duplicados(): void
+    {
+        $actor = User::factory()->create();
+        $user = User::factory()->create(['email' => 'ana.ruiz@example.com']);
+        $other = User::factory()->create(['email' => 'otro@example.com']);
+
+        foreach (['ana@gmail', $other->email] as $email) {
+            $this->actingAs($actor)
+                ->from(route('users.edit', $user))
+                ->put(route('users.update', $user), $this->userPayload([
+                    'email' => $email,
+                    'password' => '',
+                ]))
+                ->assertRedirect(route('users.edit', $user))
+                ->assertSessionHasErrors('email');
+        }
     }
 
     public function test_se_puede_eliminar_otro_usuario_pero_no_la_propia_cuenta(): void

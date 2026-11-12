@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Localidad;
 
 #[Fillable([
     'locality_id',
@@ -31,6 +32,14 @@ class Team extends Model
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Relación con la localidad del equipo.
+     */
+    public function locality(): BelongsTo
+    {
+        return $this->belongsTo(Locality::class);
     }
 
     public function players(): BelongsToMany

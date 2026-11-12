@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Models\Language;
 use App\Models\User;
+use App\Support\EmailValidation;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -179,28 +180,27 @@ class UserController extends Controller
     {
         return $request->validate([
             'language_id' => ['required', 'integer', 'exists:languages,id'],
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'name' => ['required', 'string', 'max:255'],
-            'email' => [
-                'required',
-                'email',
-                Rule::unique('users', 'email')->ignore($user?->id),
-            ],
+            'first_name' => ['required', 'string', 'min:2', 'max:50'],
+            'last_name' => ['required', 'string', 'min:2', 'max:50'],
+            'name' => ['required', 'string', 'min:2', 'max:50'],
+            'email' => EmailValidation::rules($user),
             'phone' => ['nullable', 'string', 'max:50'],
             'time_zone' => ['required', 'string', 'max:100', Rule::in(timezone_identifiers_list())],
             'is_active' => ['required', 'boolean'],
             'password' => [$user ? 'nullable' : 'required', 'string', 'min:8'],
             'avatar' => ['nullable', 'image', 'max:2048'],
-        ], [
+        ], array_merge(EmailValidation::messages(), [
             'language_id.required' => 'El idioma es obligatorio.',
             'language_id.exists' => 'El idioma no es válido.',
             'first_name.required' => 'El nombre es obligatorio.',
+            'first_name.min' => 'El nombre debe tener al menos 2 caracteres.',
+            'first_name.max' => 'El nombre no puede superar 50 caracteres.',
             'last_name.required' => 'El apellido es obligatorio.',
+            'last_name.min' => 'El apellido debe tener al menos 2 caracteres.',
+            'last_name.max' => 'El apellido no puede superar 50 caracteres.',
             'name.required' => 'El nombre visible es obligatorio.',
-            'email.required' => 'El email es obligatorio.',
-            'email.email' => 'El email no es válido.',
-            'email.unique' => 'El email ya está en uso.',
+            'name.min' => 'El nombre visible debe tener al menos 2 caracteres.',
+            'name.max' => 'El nombre visible no puede superar 50 caracteres.',
             'phone.max' => 'El teléfono no puede superar 50 caracteres.',
             'time_zone.required' => 'La zona horaria es obligatoria.',
             'time_zone.in' => 'La zona horaria no es válida.',
@@ -208,6 +208,6 @@ class UserController extends Controller
             'password.min' => 'El password debe tener al menos 8 caracteres.',
             'avatar.image' => 'El archivo debe ser una imagen.',
             'avatar.max' => 'La imagen no puede superar 2 MB.',
-        ]);
+        ]));
     }
 }
