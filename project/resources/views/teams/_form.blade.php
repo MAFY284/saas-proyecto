@@ -92,8 +92,10 @@
             type="text"
             value="{{ old('contact_phone', $team->contact_phone) }}"
             placeholder="4431234567"
+            maxlength="20"
             class="{{ $fieldClass }}"
         >
+        <p class="mt-1 text-xs text-gray-400">10 dígitos, incluyendo una clave LADA válida (ej. 443 Morelia, 55 CDMX).</p>
         @error('contact_phone')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
