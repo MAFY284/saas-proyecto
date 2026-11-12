@@ -9,6 +9,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\PlayerController; #importacion PlayerController-Javi
 use App\Http\Controllers\PositionController; #importacion PositionController-Javi
+use App\Http\Controllers\RefereeCardController;
 
 Route::get('/', function () {
     return view('home');
@@ -38,6 +39,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('match-reports/{matchReport?}', [MatchReportController::class, 'destroy'])->name('match-reports.destroy');
     Route::resource('match-reports', MatchReportController::class)
         ->parameters(['match-reports' => 'matchReport'])
+        ->except(['show', 'destroy']);
+
+    Route::delete('referee-cards/{refereeCard?}', [RefereeCardController::class, 'destroy'])->name('referee-cards.destroy');
+    Route::resource('referee-cards', RefereeCardController::class)
+        ->parameters(['referee-cards' => 'refereeCard'])
         ->except(['show', 'destroy']);
 
     Route::post('/logout', [LoginController::class, 'destroy'])
