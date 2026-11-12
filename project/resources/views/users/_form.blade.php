@@ -15,6 +15,8 @@
             id="first_name"
             name="first_name"
             value="{{ old('first_name', $user->first_name) }}"
+            minlength="2"
+            maxlength="50"
             required
             class="{{ $fieldClass }}"
         >
@@ -29,6 +31,8 @@
             id="last_name"
             name="last_name"
             value="{{ old('last_name', $user->last_name) }}"
+            minlength="2"
+            maxlength="50"
             required
             class="{{ $fieldClass }}"
         >
@@ -43,6 +47,8 @@
             id="name"
             name="name"
             value="{{ old('name', $user->name) }}"
+            minlength="2"
+            maxlength="50"
             required
             class="{{ $fieldClass }}"
         >
@@ -59,9 +65,15 @@
             name="email"
             type="email"
             value="{{ old('email', $user->email) }}"
+            maxlength="255"
+            pattern="[^@\s]+@[^@\s.]+(\.[^@\s.]+)+"
+            title="Ingresa un correo con terminación de dominio, por ejemplo usuario@gmail.com o usuario@empresa.com.mx."
             required
+            autocomplete="email"
+            aria-describedby="email-help"
             class="{{ $fieldClass }}"
         >
+        <span id="email-help" class="mt-1.5 block text-xs text-gray-500">Ejemplo: usuario@gmail.com o contacto@empresa.com.mx.</span>
         @error('email')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
