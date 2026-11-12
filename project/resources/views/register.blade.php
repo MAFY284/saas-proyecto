@@ -13,7 +13,10 @@
             <input
                 id="name"
                 name="name"
+                type="text"
                 value="{{ old('name') }}"
+                minlength="2"
+                maxlength="50"
                 required
                 class="w-full rounded-lg border border-gray-300 px-[0.7rem] py-[0.55rem] font-sans focus:border-blue-600 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-blue-600"
             >
@@ -26,9 +29,16 @@
                 name="email"
                 type="email"
                 value="{{ old('email') }}"
+                placeholder="nombre@gmail.com"
+                maxlength="255"
+                pattern="[^@\s]+@[^@\s.]+(\.[^@\s.]+)+"
+                title="Ingresa un correo con terminación de dominio, por ejemplo nombre@gmail.com o nombre@correo.com.mx."
                 required
+                autocomplete="email"
+                aria-describedby="email-help"
                 class="w-full rounded-lg border border-gray-300 px-[0.7rem] py-[0.55rem] font-sans focus:border-blue-600 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-blue-600"
             >
+            <span id="email-help" class="mt-1 block text-xs text-gray-500">Ejemplo: usuario@gmail.com o contacto@empresa.com.mx. La terminación puede ser .com, .mx, .org.mx u otra válida.</span>
         </p>
 
         <div class="mb-[0.9rem]">
@@ -38,7 +48,9 @@
                     id="password"
                     name="password"
                     type="password"
+                    minlength="8"
                     required
+                    aria-describedby="password-requirement"
                     class="w-full rounded-lg border border-gray-300 px-[0.7rem] py-[0.55rem] pr-12 font-sans focus:border-blue-600 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-blue-600"
                 >
                 <button
@@ -58,6 +70,7 @@
                     </svg>
                 </button>
             </div>
+            <p id="password-requirement" class="mt-1 text-xs text-gray-500">Debe tener al menos 8 caracteres.</p>
         </div>
 
         <div class="mb-[0.9rem]">
@@ -68,6 +81,7 @@
                     name="password_confirmation"
                     type="password"
                     required
+                    aria-describedby="password-confirmation-error"
                     class="w-full rounded-lg border border-gray-300 px-[0.7rem] py-[0.55rem] pr-12 font-sans focus:border-blue-600 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-blue-600"
                 >
                 <button
@@ -87,6 +101,7 @@
                     </svg>
                 </button>
             </div>
+            <p id="password-confirmation-error" class="mt-1 hidden text-xs text-red-700" aria-live="polite">Las contraseñas no coinciden.</p>
         </div>
 
         @if ($errors->any())
@@ -98,8 +113,10 @@
         @endif
 
         <button
+            id="register-submit"
             type="submit"
-            class="mt-[0.4rem] w-full cursor-pointer rounded-lg border-0 bg-gray-900 px-4 py-[0.65rem] font-semibold text-white hover:bg-gray-800"
+            disabled
+            class="mt-[0.4rem] w-full cursor-pointer rounded-lg border-0 bg-gray-900 px-4 py-[0.65rem] font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:hover:bg-gray-400"
         >
             Crear cuenta
         </button>
@@ -121,5 +138,38 @@
                 toggle.setAttribute('title', isVisible ? 'Ocultar contraseña' : 'Mostrar contraseña');
             });
         });
+    </script>
+
+    <script>
+        const registerName = document.getElementById('name');
+        const registerEmail = document.getElementById('email');
+        const registerPassword = document.getElementById('password');
+        const registerPasswordConfirmation = document.getElementById('password_confirmation');
+        const passwordConfirmationError = document.getElementById('password-confirmation-error');
+        const registerSubmit = document.getElementById('register-submit');
+
+        const updateRegistrationValidity = () => {
+            const passwordsMatch = registerPassword.value === registerPasswordConfirmation.value;
+            registerPasswordConfirmation.setCustomValidity(
+                registerPasswordConfirmation.value && !passwordsMatch ? 'Las contraseñas no coinciden.' : ''
+            );
+            passwordConfirmationError.classList.toggle(
+                'hidden',
+                !registerPasswordConfirmation.value || passwordsMatch
+            );
+
+            registerSubmit.disabled = !(
+                registerName.value.trim() &&
+                registerName.validity.valid &&
+                registerEmail.validity.valid &&
+                registerPassword.validity.valid &&
+                registerPasswordConfirmation.validity.valid
+            );
+        };
+
+        [registerName, registerEmail, registerPassword, registerPasswordConfirmation].forEach((input) => {
+            input.addEventListener('input', updateRegistrationValidity);
+        });
+        updateRegistrationValidity();
     </script>
 @endsection
