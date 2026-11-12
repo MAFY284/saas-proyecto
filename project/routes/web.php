@@ -29,7 +29,10 @@ Route::middleware('auth')->group(function () {
     Route::delete('users/{user?}', [UserController::class, 'destroy'])->name('users.destroy');
     Route::resource('users', UserController::class)->except(['show', 'destroy']);
     Route::resource('teams', TeamController::class)->except(['show']);
-    Route::resource('players', PlayerController::class)->except(['show']);
+    Route::delete('players/bulk', [PlayerController::class, 'destroySelected'])
+        ->name('players.destroy-selected');
+    Route::resource('players', PlayerController::class)
+        ->except(['show']);
 
     Route::delete('matches/{game?}', [MatchController::class, 'destroy'])->name('matches.destroy');
     Route::resource('matches', MatchController::class)

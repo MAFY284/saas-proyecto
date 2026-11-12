@@ -56,8 +56,8 @@ class PlayerController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'first_name' => 'required|string|max:100',
-            'last_name' => 'required|string|max:100',
+            'first_name' => ['required', 'string', 'max:100', 'regex:/^[\p{L} ]+$/u'],
+            'last_name' => ['required', 'string', 'max:100', 'regex:/^[\p{L} ]+$/u'],
             'birth_date' => 'nullable|date|before_or_equal:today',
             'status' => 'required|in:active,inactive',
             'team_id' => 'nullable|exists:teams,id',
@@ -74,6 +74,8 @@ class PlayerController extends Controller
         ], [
             'first_name.required' => 'El nombre es obligatorio.',
             'last_name.required' => 'Los apellidos son obligatorios.',
+            'first_name.regex' => 'El nombre solo puede contener letras y espacios.',
+            'last_name.regex' => 'Los apellidos solo pueden contener letras y espacios.',
             'birth_date.before_or_equal' => 'La fecha de nacimiento no puede ser futura.',
             'team_id.exists' => 'El equipo seleccionado no existe.',
             'position_id.exists' => 'La posición seleccionada no existe.',
@@ -178,8 +180,8 @@ class PlayerController extends Controller
         abort_unless($player->type_id === 'player', 404);
 
         $data = $request->validate([
-            'first_name' => 'required|string|max:100',
-            'last_name' => 'required|string|max:100',
+            'first_name' => ['required', 'string', 'max:100', 'regex:/^[\p{L} ]+$/u'],
+            'last_name' => ['required', 'string', 'max:100', 'regex:/^[\p{L} ]+$/u'],
             'birth_date' => 'nullable|date|before_or_equal:today',
             'status' => 'required|in:active,inactive',
             'team_id' => 'nullable|exists:teams,id',
@@ -197,6 +199,8 @@ class PlayerController extends Controller
         ], [
             'first_name.required' => 'El nombre es obligatorio.',
             'last_name.required' => 'Los apellidos son obligatorios.',
+            'first_name.regex' => 'El nombre solo puede contener letras y espacios.',
+            'last_name.regex' => 'Los apellidos solo pueden contener letras y espacios.',
             'birth_date.before_or_equal' => 'La fecha de nacimiento no puede ser futura.',
             'team_id.exists' => 'El equipo seleccionado no existe.',
             'position_id.exists' => 'La posición seleccionada no existe.',
@@ -376,6 +380,82 @@ class PlayerController extends Controller
         return redirect()
             ->route('players.index')
             ->with('success', 'Jugador eliminado correctamente.');
+    }
+
+
+    /**
+     * Eliminar varios jugadores en una sola transacción.
+     * No permite eliminaciones parciales ni elimina sus datos personales.
+     */
+    public function destroySelected(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => ['required', 'array', 'min:1', 'max:50'],
+            'ids.*' => ['required', 'integer', 'distinct'],
+        ], [
+            'ids.required' => 'Selecciona al menos un jugador.',
+            'ids.max' => 'Selecciona como máximo 50 jugadores por operación.',
+        ]);
+
+        $ids = array_map('intval', $data['ids']);
+        $photoPaths = [];
+
+        try {
+            DB::transaction(function () use ($ids, &$photoPaths) {
+                // Bloquear en orden estable para evitar eliminaciones concurrentes.
+                $players = Player::query()
+                    ->whereIn('id', $ids)
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get();
+
+                if ($players->count() !== count($ids) ||
+                    $players->contains(fn (Player $p) => $p->type_id !== 'player')) {
+                    throw ValidationException::withMessages([
+                        'ids' => 'La selección contiene un registro inexistente o que no es un jugador.',
+                    ]);
+                }
+
+                foreach ($players as $current) {
+                    if ($current->entries()->exists()) {
+                        throw ValidationException::withMessages([
+                            'ids' => 'No se eliminó ningún jugador: uno o más tienen registros de partidos.',
+                        ]);
+                    }
+                }
+
+                foreach ($players as $current) {
+                    $current->teams()->detach();
+                    DB::table('player_positions')
+                        ->where('player_id', $current->id)
+                        ->delete();
+                    $current->delete();
+
+                    if ($current->photo_url) {
+                        $photoPaths[] = $current->photo_url;
+                    }
+                }
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            if (in_array((string) $e->getCode(), ['23000', '23503'], true)) {
+                return redirect()
+                    ->route('players.index')
+                    ->with('error', 'No se eliminó ningún jugador porque existen otros registros asociados.');
+            }
+
+            throw $e;
+        }
+
+        // Eliminar archivos solamente tras completar la transacción.
+        if ($photoPaths) {
+            Storage::disk('public')->delete($photoPaths);
+        }
+
+        return redirect()
+            ->route('players.index')
+            ->with('success', count($ids) === 1
+                ? 'Jugador eliminado correctamente.'
+                : 'Jugadores eliminados correctamente.');
     }
 
 }
