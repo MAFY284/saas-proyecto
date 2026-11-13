@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Team;
+use App\Rules\ValidMexicanPhone;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -60,7 +61,7 @@ class TeamController extends Controller
             'locality_id'   => 'required|exists:localities,id',
             'short_name'    => 'nullable|string|max:50',
             'contact_email' => 'nullable|email|max:255',
-            'contact_phone' => 'nullable|string|max:50',
+            'contact_phone' => ['nullable', 'string', 'max:20', new ValidMexicanPhone()],
             'is_active'     => 'required|in:0,1',
             'logo_url'      => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ], [
@@ -112,7 +113,7 @@ class TeamController extends Controller
             'locality_id'   => 'required|exists:localities,id',
             'short_name'    => 'nullable|string|max:50',
             'contact_email' => 'nullable|email|max:255',
-            'contact_phone' => 'nullable|string|max:50',
+            'contact_phone' => ['nullable', 'string', 'max:20', new ValidMexicanPhone()],
             'is_active'     => 'required|in:0,1',
             'logo_url'      => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ], [
