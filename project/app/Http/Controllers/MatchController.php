@@ -87,7 +87,7 @@ class MatchController extends Controller
     public function update(Request $request, Game $game)
     {
         $data = $this->validatedData($request, $game);
-        $data = $this->resolveNames($data);
+        $data = $this->resolveNames($data, $game);
 
         $game->update($data);
 
@@ -136,7 +136,7 @@ class MatchController extends Controller
     {
         return [
             'tournaments' => Tournament::query()->orderBy('name')->get(),
-            'teamOptions' => Team::query()->orderBy('name')->get(),
+            'teamOptions' => Team::query()->where('is_active', true)->orderBy('name')->get(),
             'fieldOptions' => Field::query()->orderBy('name')->get(),
         ];
     }
@@ -147,10 +147,18 @@ class MatchController extends Controller
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    private function resolveNames(array $data): array
+    private function resolveNames(array $data, ?Game $game = null): array
     {
-        $localTeamId = $this->resolveTeamId((string) $data['local_team_name']);
-        $visitorTeamId = $this->resolveTeamId((string) $data['visitor_team_name']);
+        $localTeamId = $this->resolveTeamId(
+            (string) $data['local_team_name'],
+            'local_team_name',
+            $game?->local_team_id
+        );
+        $visitorTeamId = $this->resolveTeamId(
+            (string) $data['visitor_team_name'],
+            'visitor_team_name',
+            $game?->visitor_team_id
+        );
 
         if ($localTeamId === $visitorTeamId) {
             throw ValidationException::withMessages([
@@ -167,7 +175,7 @@ class MatchController extends Controller
         return $data;
     }
 
-    private function resolveTeamId(string $name): int
+    private function resolveTeamId(string $name, string $field, ?int $currentTeamId = null): int
     {
         $name = trim($name);
 
@@ -176,6 +184,12 @@ class MatchController extends Controller
             ->first();
 
         if ($team) {
+            if (! $team->is_active && $team->id !== $currentTeamId) {
+                throw ValidationException::withMessages([
+                    $field => "El equipo {$team->name} está inactivo.",
+                ]);
+            }
+
             return $team->id;
         }
 
@@ -183,7 +197,7 @@ class MatchController extends Controller
 
         if (! $localityId) {
             throw ValidationException::withMessages([
-                'local_team_name' => 'No hay localidades registradas para crear equipos.',
+                $field => 'No hay localidades registradas para crear equipos.',
             ]);
         }
 
