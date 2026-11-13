@@ -114,6 +114,13 @@ if [ -f "$APP_DIR/package.json" ]; then
     NPM_INSTALL_STATUS=0
   fi
 
+  if [ -f "$APP_DIR/public/build/manifest.json" ]; then
+    if [ "$APP_DIR/vite.config.js" -nt "$APP_DIR/public/build/manifest.json" ] || [ -n "$(find "$APP_DIR/resources" -type f -newer "$APP_DIR/public/build/manifest.json" -print -quit 2>/dev/null)" ]; then
+      echo "[entrypoint] cambios de frontend detectados; se reconstruirán los assets..."
+      rm -f "$APP_DIR/public/build/manifest.json"
+    fi
+  fi
+
   if [ "$NPM_INSTALL_STATUS" -eq 0 ] && [ ! -f "$APP_DIR/public/build/manifest.json" ]; then
     echo "[entrypoint] npm run build (generar public/build)..."
     set +e

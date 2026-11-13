@@ -20,7 +20,7 @@
                 </div>
 
                 @hasSection('header-search')
-                    <div class="w-full sm:max-w-sm sm:shrink-0">
+                    <div class="w-full sm:ml-auto sm:w-72 sm:max-w-xs sm:shrink-0">
                         @yield('header-search')
                     </div>
                 @endif
