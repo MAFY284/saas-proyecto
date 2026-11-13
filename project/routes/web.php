@@ -7,6 +7,7 @@ use App\Http\Controllers\RegisterController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\FieldController;
 use App\Http\Controllers\PlayerController; #importacion PlayerController-Javi
 use App\Http\Controllers\PositionController; #importacion PositionController-Javi
 use App\Http\Controllers\RefereeCardController;
@@ -65,6 +66,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('positions/{id}', [PositionController::class, 'destroy'])
         ->name('positions.destroy');
 
+    Route::delete('fields/destroy', [FieldController::class, 'destroy'])->name('fields.destroy');
+    Route::resource('fields', FieldController::class)->except(['show', 'destroy']);
 });
 
 require __DIR__.'/leagues.php';

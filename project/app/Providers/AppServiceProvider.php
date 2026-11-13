@@ -44,14 +44,14 @@ class AppServiceProvider extends ServiceProvider
                             'id' => 'sports',
                             'label' => 'Gestión',
                             'url' => route('matches.index'),
-                            'is_active' => request()->routeIs('matches.*', 'match-reports.*', 'referee-cards.*', 'teams.*', 'players.*'),
+                            'is_active' => request()->routeIs('matches.*', 'match-reports.*', 'referee-cards.*', 'teams.*', 'players.*', 'fields.*'),
                             'items' => [
                                 $link('Partidos', 'matches.index', 'GET', 'matches.*'),
                                 $link('Actas', 'match-reports.index', 'GET', 'match-reports.*'),
                                 $link('Cédulas arb.', 'referee-cards.index', 'GET', 'referee-cards.*'),
                                 $link('Equipos', 'teams.index', 'GET', 'teams.*'),
                                 $link('Jugadores', 'players.index', 'GET', 'players.*'),
-
+                                $link('Sedes', 'fields.index', 'GET', 'fields.*'),
                         ],
                     ],
 
