@@ -71,3 +71,4 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/leagues.php';
+require __DIR__.'/tournaments.php';
