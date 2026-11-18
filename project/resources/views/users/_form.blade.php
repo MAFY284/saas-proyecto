@@ -131,18 +131,65 @@
 
     <div class="flex items-end">
         <input type="hidden" name="is_active" value="0">
-        <label class="inline-flex items-center gap-2 text-[0.9rem] font-semibold text-gray-700">
+        <label class="inline-flex items-center gap-2 text-[0.9rem] font-semibold text-gray-700 pb-2 cursor-pointer">
             <input
                 id="is_active"
                 name="is_active"
                 type="checkbox"
                 value="1"
-                class="rounded border-gray-300"
+                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 @checked((string) old('is_active', $user->exists ? (int) $user->is_active : 1) === '1')
             >
             Usuario activo
         </label>
         @error('is_active')
+            <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+        @enderror
+    </div>
+
+    {{-- Casilla de Administrador --}}
+    <div class="flex items-end">
+        <input type="hidden" name="is_admin" value="0">
+        <label class="inline-flex items-center gap-2 text-[0.9rem] font-semibold text-gray-700 pb-2 cursor-pointer">
+            <input
+                id="is_admin"
+                name="is_admin"
+                type="checkbox"
+                value="1"
+                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                @checked((string) old('is_admin', !empty($isAdmin) ? 1 : 0) === '1')
+                onchange="handleAdminToggle(this.checked)"
+            >
+            Es Administrador (Acceso total)
+        </label>
+        @error('is_admin')
+            <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+        @enderror
+    </div>
+
+    {{-- Tipo de participante en fútbol --}}
+    <div>
+        <label for="participant_type" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Tipo de participante</label>
+        <select
+            id="participant_type"
+            name="participant_type"
+            class="{{ $fieldClass }} transition-colors"
+            @disabled((string) old('is_admin', !empty($isAdmin) ? 1 : 0) === '1')
+        >
+            <option value="">-- Sin tipo asignado --</option>
+            @foreach ($participantTypes as $value => $label)
+                <option
+                    value="{{ $value }}"
+                    @selected(old('participant_type', $userParticipantType ?? '') === $value)
+                >
+                    {{ $label }}
+                </option>
+            @endforeach
+        </select>
+        <span id="participant_type_hint" class="mt-1.5 block text-xs text-gray-500">
+            Función dentro de la liga (Jugador, Árbitro, Entrenador, etc.).
+        </span>
+        @error('participant_type')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
@@ -179,3 +226,41 @@
         @enderror
     </div>
 </div>
+
+<script>
+    function handleAdminToggle(isAdmin) {
+        const select = document.getElementById('participant_type');
+        const hint = document.getElementById('participant_type_hint');
+
+        if (select) {
+            select.disabled = Boolean(isAdmin);
+            if (isAdmin) {
+                select.value = '';
+                select.classList.add('bg-gray-100', 'cursor-not-allowed', 'opacity-60');
+                if (hint) {
+                    hint.textContent = 'Menú desactivado: los administradores tienen acceso total y no tienen función de participante de campo.';
+                    hint.className = 'mt-1.5 block text-xs text-amber-600 font-medium';
+                }
+            } else {
+                select.classList.remove('bg-gray-100', 'cursor-not-allowed', 'opacity-60');
+                if (hint) {
+                    hint.textContent = 'Función dentro de la liga (Jugador, Árbitro, Entrenador, etc.).';
+                    hint.className = 'mt-1.5 block text-xs text-gray-500';
+                }
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const adminCheck = document.getElementById('is_admin');
+        if (adminCheck) {
+            handleAdminToggle(adminCheck.checked);
+            adminCheck.addEventListener('change', function () {
+                handleAdminToggle(this.checked);
+            });
+            adminCheck.addEventListener('click', function () {
+                handleAdminToggle(this.checked);
+            });
+        }
+    });
+</script>

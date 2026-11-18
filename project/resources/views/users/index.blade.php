@@ -104,6 +104,8 @@
                     <th class="w-12 px-3 py-3"></th>
                     <th class="px-3 py-3">Nombre</th>
                     <th class="px-3 py-3">Email</th>
+                    <th class="px-3 py-3">Rol del sistema</th>
+                    <th class="px-3 py-3">Tipo</th>
                     <th class="px-3 py-3">Fecha de creación</th>
                 </tr>
             </thead>
@@ -129,11 +131,25 @@
                         </td>
                         <td class="px-3 py-3 font-medium text-gray-800">{{ $user->name }}</td>
                         <td class="px-3 py-3 text-gray-600">{{ $user->email }}</td>
+                        <td class="px-3 py-3">
+                            @if ($user->isAdmin())
+                                <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 border border-blue-200">
+                                    Administrador
+                                </span>
+                            @else
+                                <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+                                    Usuario (Lectura)
+                                </span>
+                            @endif
+                        </td>
+                        <td class="px-3 py-3 text-gray-600">
+                            {{ $user->participantTypeLabel() }}
+                        </td>
                         <td class="px-3 py-3 text-gray-600">{{ $user->created_at?->format('d/m/Y H:i') }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="px-3 py-8 text-center text-gray-500">No hay usuarios registrados.</td>
+                        <td colspan="7" class="px-3 py-8 text-center text-gray-500">No hay usuarios registrados.</td>
                     </tr>
                 @endforelse
             </tbody>

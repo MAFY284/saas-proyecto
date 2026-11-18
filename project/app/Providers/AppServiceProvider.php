@@ -23,62 +23,46 @@ class AppServiceProvider extends ServiceProvider
         View::composer('layouts.partials.navbar', function ($view) {
             $link = function (string $label, string $route, string $method = 'GET', ?string $active = null): array {
                 return [
-                    'label' => $label,
-                    'url' => route($route),
-                    'method' => $method,
+                    'label'     => $label,
+                    'url'       => route($route),
+                    'method'    => $method,
                     'is_active' => request()->routeIs($active ?? $route),
-                    'style' => 'link',
+                    'style'     => 'link',
                 ];
             };
 
             $view->with([
                 'mainMenus' => auth()->check() ? [
                     [
-                        'id' => 'users',
-                        'label' => 'Usuarios',
-                        'url' => route('users.index'),
-                        'is_active' => request()->routeIs('users.*'),
-                        'items' => [],
-                    ],
-                    [
-                        'id' => 'sports',
-                        'label' => 'Gestión',
-                        'url' => route('matches.index'),
-                        'is_active' => request()->routeIs('matches.*', 'match-reports.*', 'teams.*'),
-                        'items' => [
-                            $link('Partidos', 'matches.index', 'GET', 'matches.*'),
-                            $link('Actas', 'match-reports.index', 'GET', 'match-reports.*'),
-                            $link('Equipos', 'teams.index', 'GET', 'teams.*'),
+                        'id'        => 'admin',
+                        'label'     => 'Administración',
+                        'url'       => route('users.index'),
+                        'is_active' => request()->routeIs('users.*', 'roles.*', 'access.*'),
+                        'items'     => [
+                            $link('Usuarios', 'users.index', 'GET', 'users.*'),
+                            $link('Roles',    'roles.index', 'GET', 'roles.*'),
+                            $link('Acceso',   'access.index', 'GET', 'access.*'),
                         ],
                     ],
-
-
-
-
-
-
-
-
-
-
-
-
-
-                    
                     [
-                        'id' => 'leagues',
-                        'label' => 'Ligas',
-                        'url' => route('leagues.index'),
-                        'is_active' => request()->routeIs('leagues.*'),
-                        'items' => [],
+                        'id'        => 'sports',
+                        'label'     => 'Gestión',
+                        'url'       => route('matches.index'),
+                        'is_active' => request()->routeIs('matches.*', 'match-reports.*', 'teams.*', 'leagues.*'),
+                        'items'     => [
+                            $link('Ligas',      'leagues.index',       'GET', 'leagues.*'),
+                            $link('Partidos',  'matches.index',       'GET', 'matches.*'),
+                            $link('Actas',     'match-reports.index', 'GET', 'match-reports.*'),
+                            $link('Equipos',   'teams.index',         'GET', 'teams.*'),
+                        ],
                     ],
                 ] : [],
                 'accountMenus' => auth()->check() ? [
                     [
-                        'id' => 'cuenta',
-                        'label' => 'Cuenta',
+                        'id'        => 'cuenta',
+                        'label'     => 'Cuenta',
                         'is_active' => false,
-                        'items' => [
+                        'items'     => [
                             $link('Cerrar sesión', 'logout', 'POST'),
                         ],
                     ],

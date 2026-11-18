@@ -7,6 +7,7 @@ use App\Http\Controllers\RegisterController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\AccessController;
 
 Route::get('/', function () {
     return view('home');
@@ -25,6 +26,8 @@ Route::middleware('auth')->group(function () {
     Route::post('users/process', [UserController::class, 'process'])->name('users.process');
     Route::delete('users/{user?}', [UserController::class, 'destroy'])->name('users.destroy');
     Route::resource('users', UserController::class)->except(['show', 'destroy']);
+    Route::get('access', [AccessController::class, 'index'])->name('access.index');
+    Route::put('access/{participantType}', [AccessController::class, 'update'])->name('access.update');
     Route::resource('teams', TeamController::class)->except(['show']);
 
     Route::delete('matches/{game?}', [MatchController::class, 'destroy'])->name('matches.destroy');
@@ -42,3 +45,4 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/leagues.php';
+require __DIR__.'/roles.php';

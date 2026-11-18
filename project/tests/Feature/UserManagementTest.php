@@ -144,6 +144,49 @@ class UserManagementTest extends TestCase
         $this->assertModelExists($actor);
     }
 
+    public function test_se_puede_asignar_y_actualizar_tipo_de_participante(): void
+    {
+        $actor = User::factory()->create();
+        $user = User::factory()->create();
+
+        // 1. Asignar tipo 'arbitro'
+        $this->actingAs($actor)
+            ->put(route('users.update', $user), $this->userPayload([
+                'email' => $user->email,
+                'participant_type' => 'arbitro',
+            ]))
+            ->assertRedirect(route('users.index'))
+            ->assertSessionHas('status', 'Usuario actualizado.');
+
+        $user->refresh();
+        $this->assertSame('arbitro', $user->participantType());
+        $this->assertSame('Árbitro', $user->participantTypeLabel());
+
+        // 2. Cambiar tipo a 'entrenador'
+        $this->actingAs($actor)
+            ->put(route('users.update', $user), $this->userPayload([
+                'email' => $user->email,
+                'participant_type' => 'entrenador',
+            ]))
+            ->assertRedirect(route('users.index'));
+
+        $user->refresh();
+        $this->assertSame('entrenador', $user->participantType());
+        $this->assertSame('Entrenador', $user->participantTypeLabel());
+
+        // 3. Quitar tipo de participante
+        $this->actingAs($actor)
+            ->put(route('users.update', $user), $this->userPayload([
+                'email' => $user->email,
+                'participant_type' => '',
+            ]))
+            ->assertRedirect(route('users.index'));
+
+        $user->refresh();
+        $this->assertNull($user->participantType());
+        $this->assertSame('—', $user->participantTypeLabel());
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>
