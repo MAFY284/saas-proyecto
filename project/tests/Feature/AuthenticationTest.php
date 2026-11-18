@@ -69,4 +69,60 @@ class AuthenticationTest extends TestCase
             'email' => 'ana@example.com',
         ]);
     }
+
+    public function test_el_registro_rechaza_correos_sin_terminacion_de_dominio(): void
+    {
+        $this->from('/register')
+            ->post('/register', [
+                'name' => 'Ana Ruiz',
+                'email' => 'ana@gmail',
+                'password' => 'password123',
+                'password_confirmation' => 'password123',
+            ])
+            ->assertRedirect('/register')
+            ->assertSessionHasErrors('email');
+    }
+
+    public function test_el_registro_rechaza_espacios_alrededor_del_correo(): void
+    {
+        $this->from('/register')
+            ->post('/register', [
+                'name' => 'Ana Ruiz',
+                'email' => ' ana@example.com ',
+                'password' => 'password123',
+                'password_confirmation' => 'password123',
+            ])
+            ->assertRedirect('/register')
+            ->assertSessionHasErrors('email');
+    }
+
+    public function test_el_registro_rechaza_correos_duplicados(): void
+    {
+        User::factory()->create(['email' => 'ana@example.com']);
+
+        $this->from('/register')
+            ->post('/register', [
+                'name' => 'Ana Ruiz',
+                'email' => 'ana@example.com',
+                'password' => 'password123',
+                'password_confirmation' => 'password123',
+            ])
+            ->assertRedirect('/register')
+            ->assertSessionHasErrors('email');
+    }
+
+    public function test_el_registro_requiere_un_nombre_de_2_a_50_caracteres(): void
+    {
+        foreach (['A', str_repeat('A', 51)] as $name) {
+            $this->from('/register')
+                ->post('/register', [
+                    'name' => $name,
+                    'email' => 'ana@example.com',
+                    'password' => 'password123',
+                    'password_confirmation' => 'password123',
+                ])
+                ->assertRedirect('/register')
+                ->assertSessionHasErrors('name');
+        }
+    }
 }

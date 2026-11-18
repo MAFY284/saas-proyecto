@@ -72,6 +72,11 @@ class Game extends Model
         return $this->hasOne(MatchReport::class, 'match_id');
     }
 
+    public function refereeCard(): HasOne
+    {
+        return $this->hasOne(RefereeCard::class, 'match_id');
+    }
+
     public function scoreLabel(): string
     {
         if (in_array($this->status, ['scheduled', 'postponed', 'cancelled'], true)) {

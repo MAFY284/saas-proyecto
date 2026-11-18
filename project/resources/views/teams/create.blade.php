@@ -21,7 +21,7 @@
 @endsection
 
 @section('content')
-    <form id="team-form" method="POST" action="{{ route('teams.store') }}" class="h-full w-full">
+    <form id="team-form" method="POST" action="{{ route('teams.store') }}" enctype="multipart/form-data" class="h-full w-full">
         @include('teams._form', ['team' => new \App\Models\Team()])
     </form>
 @endsection

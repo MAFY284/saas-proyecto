@@ -49,7 +49,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(1);
             $table->timestamps();
         });
-
+    
         Schema::create('players', function (Blueprint $table) {
             $table->id();
             $table->foreignId('person_id')->constrained('person_data')->restrictOnDelete();

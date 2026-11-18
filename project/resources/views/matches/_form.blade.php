@@ -26,53 +26,41 @@
 
     <div>
         <label for="local_team_name" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Equipo local</label>
-        <input
-            id="local_team_name"
+        <x-searchable-input
             name="local_team_name"
-            list="team-options"
-            value="{{ old('local_team_name', $game->localTeam?->name) }}"
+            :value="$game->localTeam?->name"
+            :options="$teamOptions->pluck('name')->all()"
             placeholder="Escribe o selecciona un equipo"
+            add-label="Agregar equipo"
+            help="Si el equipo no existe, se creará activo automáticamente."
             required
-            class="{{ $fieldClass }}"
-        >
-        <span class="mt-1.5 block text-xs text-gray-500">Si el equipo no existe, se creará automáticamente.</span>
-        @error('local_team_name')
-            <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
-        @enderror
+        />
     </div>
 
     <div>
         <label for="visitor_team_name" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Equipo visitante</label>
-        <input
-            id="visitor_team_name"
+        <x-searchable-input
             name="visitor_team_name"
-            list="team-options"
-            value="{{ old('visitor_team_name', $game->visitorTeam?->name) }}"
+            :value="$game->visitorTeam?->name"
+            :options="$teamOptions->pluck('name')->all()"
             placeholder="Escribe o selecciona un equipo"
+            add-label="Agregar equipo"
+            help="Si el equipo no existe, se creará activo automáticamente."
             required
-            class="{{ $fieldClass }}"
-        >
-        <span class="mt-1.5 block text-xs text-gray-500">Si el equipo no existe, se creará automáticamente.</span>
-        @error('visitor_team_name')
-            <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
-        @enderror
+        />
     </div>
 
     <div>
         <label for="field_name" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Sede o zona de juego</label>
-        <input
-            id="field_name"
+        <x-searchable-input
             name="field_name"
-            list="field-options"
-            value="{{ old('field_name', $game->field?->name) }}"
+            :value="$game->field?->name"
+            :options="$fieldOptions->pluck('name')->all()"
             placeholder="Escribe o selecciona una sede"
+            add-label="Agregar sede"
+            help="Si la sede no existe, se creará automáticamente."
             required
-            class="{{ $fieldClass }}"
-        >
-        <span class="mt-1.5 block text-xs text-gray-500">Si la sede no existe, se creará automáticamente.</span>
-        @error('field_name')
-            <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
-        @enderror
+        />
     </div>
 
     <div>
@@ -165,15 +153,3 @@
         @enderror
     </div>
 </div>
-
-<datalist id="team-options">
-    @foreach ($teamOptions as $team)
-        <option value="{{ $team->name }}"></option>
-    @endforeach
-</datalist>
-
-<datalist id="field-options">
-    @foreach ($fieldOptions as $field)
-        <option value="{{ $field->name }}"></option>
-    @endforeach
-</datalist>

@@ -1,13 +1,17 @@
 <?php
 
+use App\Http\Controllers\AccessController;
+use App\Http\Controllers\FieldController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\MatchReportController;
+use App\Http\Controllers\PlayerController;
+use App\Http\Controllers\PositionController;
+use App\Http\Controllers\RefereeCardController;
 use App\Http\Controllers\RegisterController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\TeamController;
-use App\Http\Controllers\AccessController;
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('home');
@@ -29,6 +33,10 @@ Route::middleware('auth')->group(function () {
     Route::get('access', [AccessController::class, 'index'])->name('access.index');
     Route::put('access/{participantType}', [AccessController::class, 'update'])->name('access.update');
     Route::resource('teams', TeamController::class)->except(['show']);
+    Route::delete('players/bulk', [PlayerController::class, 'destroySelected'])
+        ->name('players.destroy-selected');
+    Route::resource('players', PlayerController::class)
+        ->except(['show']);
 
     Route::delete('matches/{game?}', [MatchController::class, 'destroy'])->name('matches.destroy');
     Route::resource('matches', MatchController::class)
@@ -40,9 +48,31 @@ Route::middleware('auth')->group(function () {
         ->parameters(['match-reports' => 'matchReport'])
         ->except(['show', 'destroy']);
 
+    Route::delete('referee-cards/{refereeCard?}', [RefereeCardController::class, 'destroy'])->name('referee-cards.destroy');
+    Route::resource('referee-cards', RefereeCardController::class)
+        ->parameters(['referee-cards' => 'refereeCard'])
+        ->except(['show', 'destroy']);
+
     Route::post('/logout', [LoginController::class, 'destroy'])
     ->name('logout');
+
+    // Administración de posiciones de jugadores
+    Route::get('positions', [PositionController::class, 'index'])
+        ->name('positions.index');
+
+    Route::post('positions', [PositionController::class, 'store'])
+        ->name('positions.store');
+
+    Route::put('positions/{id}', [PositionController::class, 'update'])
+        ->name('positions.update');
+
+    Route::delete('positions/{id}', [PositionController::class, 'destroy'])
+        ->name('positions.destroy');
+
+    Route::delete('fields/destroy', [FieldController::class, 'destroy'])->name('fields.destroy');
+    Route::resource('fields', FieldController::class)->except(['show', 'destroy']);
 });
 
 require __DIR__.'/leagues.php';
 require __DIR__.'/roles.php';
+require __DIR__.'/tournaments.php';

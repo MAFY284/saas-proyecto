@@ -21,7 +21,7 @@
 @endsection
 
 @section('content')
-    <form id="team-form" method="POST" action="{{ route('teams.update', $team) }}" class="h-full w-full">
+    <form id="team-form" method="POST" action="{{ route('teams.update', $team) }}" enctype="multipart/form-data" class="h-full w-full">
         @csrf
         @method('PUT')
         @include('teams._form', ['team' => $team])
