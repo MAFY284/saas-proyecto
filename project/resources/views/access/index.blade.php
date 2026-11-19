@@ -33,48 +33,23 @@
         </div>
     @endif
 
-    {{-- Selector desplegable rápido de tipo de participante --}}
-    <div class="mb-6 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-        <label for="participant-quick-select" class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-blue-900">
-            Seleccionar tipo de participante (Desplegable)
-        </label>
-        <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
-            <select
-                id="participant-quick-select"
-                class="w-full sm:w-72 rounded-lg border border-blue-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-600 focus:outline-none"
-            >
-                <option value="">-- Elige un tipo para desplegar --</option>
-                @foreach ($participantTypes as $type => $label)
-                    <option value="participant-{{ $type }}" @selected($type === 'jugador')>
-                        {{ $label }} {{ $type === 'jugador' ? '(Jugador principal)' : '' }}
-                    </option>
-                @endforeach
-            </select>
-            <span class="text-xs text-blue-700">
-                Abre y enfoca la configuración del participante seleccionado.
-            </span>
-        </div>
-    </div>
+    
 
     <div class="space-y-4">
         @foreach ($participantTypes as $type => $label)
             <details
                 id="participant-{{ $type }}"
                 class="participant-details group rounded-xl border border-gray-200 bg-white shadow-sm transition-all overflow-hidden"
-                @if ($type === 'jugador') open @endif
             >
                 <summary class="flex cursor-pointer list-none items-center justify-between p-5 hover:bg-gray-50/80 transition-colors select-none">
                     <div class="flex items-center gap-3">
-                        <span class="flex h-9 w-9 items-center justify-center rounded-lg {{ $type === 'jugador' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600' }} font-bold text-sm">
+                        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-600 group-open:bg-blue-100 group-open:text-blue-700 font-bold text-sm transition-colors duration-150">
                             {{ mb_substr($label, 0, 1) }}
                         </span>
                         <div>
                             <div class="flex items-center gap-2">
                                 <h2 class="text-base font-semibold text-gray-800">{{ $label }}</h2>
                                 @if ($type === 'jugador')
-                                    <span class="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 border border-blue-200">
-                                        Principal
-                                    </span>
                                 @endif
                             </div>
                             <p class="text-xs text-gray-500">Permisos del tipo de participante {{ mb_strtolower($label) }}.</p>

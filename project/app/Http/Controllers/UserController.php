@@ -150,8 +150,13 @@ class UserController extends Controller
             $deletedUser->deleteAvatarFile();
         }
 
+        $userIds = $users->modelKeys();
+
+        // Eliminar roles asociados antes de borrar el usuario (FK restrictOnDelete)
+        DB::table('user_roles')->whereIn('user_id', $userIds)->delete();
+
         $deleted = User::query()
-            ->whereIn('id', $users->modelKeys())
+            ->whereIn('id', $userIds)
             ->delete();
 
         if ($deleted === 0) {

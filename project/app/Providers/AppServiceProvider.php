@@ -49,6 +49,7 @@ class AppServiceProvider extends ServiceProvider
                         'label'     => 'Gestión',
                         'url'       => route('matches.index'),
                         'is_active' => request()->routeIs(
+                            'leagues.*',
                             'matches.*',
                             'match-reports.*',
                             'referee-cards.*',
@@ -58,6 +59,7 @@ class AppServiceProvider extends ServiceProvider
                             'tournaments.*',
                         ),
                         'items' => [
+                            $link('Ligas',        'leagues.index',       'GET', 'leagues.*'),
                             $link('Torneos',      'tournaments.index',   'GET', 'tournaments.*'),
                             $link('Partidos',     'matches.index',       'GET', 'matches.*'),
                             $link('Actas',        'match-reports.index', 'GET', 'match-reports.*'),
@@ -66,13 +68,6 @@ class AppServiceProvider extends ServiceProvider
                             $link('Jugadores',    'players.index',       'GET', 'players.*'),
                             $link('Sedes',        'fields.index',        'GET', 'fields.*'),
                         ],
-                    ],
-                    [
-                        'id'        => 'leagues',
-                        'label'     => 'Ligas',
-                        'url'       => route('leagues.index'),
-                        'is_active' => request()->routeIs('leagues.*'),
-                        'items'     => [],
                     ],
                 ] : [],
                 'accountMenus' => auth()->check() ? [
