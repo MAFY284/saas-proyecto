@@ -148,4 +148,29 @@ class TeamController extends Controller
 
         return redirect()->route('teams.index')->with('success', 'Equipo actualizado correctamente.');
     }
+    /**
+     * Elimina uno o varios equipos seleccionados.
+     */
+    public function destroy(Request $request)
+    {
+        $ids = $request->input('ids', []);
+
+        if (empty($ids)) {
+            return redirect()->route('teams.index')
+                ->with('error', 'Por favor selecciona al menos un equipo para eliminar.');
+        }
+
+        $teams = Team::whereIn('id', $ids)->get();
+
+        foreach ($teams as $team) {
+            // Eliminar la imagen asociada si existe
+            if ($team->logo_url && Storage::disk('public')->exists($team->logo_url)) {
+                Storage::disk('public')->delete($team->logo_url);
+            }
+            $team->delete();
+        }
+
+        return redirect()->route('teams.index')
+            ->with('success', 'Equipos eliminados correctamente.');
+    }
 }
