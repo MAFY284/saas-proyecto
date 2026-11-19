@@ -1,16 +1,17 @@
 <?php
 
+use App\Http\Controllers\AccessController;
+use App\Http\Controllers\FieldController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MatchController;
 use App\Http\Controllers\MatchReportController;
-use App\Http\Controllers\RegisterController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\TeamController;
-use App\Http\Controllers\FieldController;
-use App\Http\Controllers\PlayerController; #importacion PlayerController-Javi
-use App\Http\Controllers\PositionController; #importacion PositionController-Javi
+use App\Http\Controllers\PlayerController;
+use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RefereeCardController;
+use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\TeamController;
+use App\Http\Controllers\UserController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('home');
@@ -29,6 +30,8 @@ Route::middleware('auth')->group(function () {
     Route::post('users/process', [UserController::class, 'process'])->name('users.process');
     Route::delete('users/{user?}', [UserController::class, 'destroy'])->name('users.destroy');
     Route::resource('users', UserController::class)->except(['show', 'destroy']);
+    Route::get('access', [AccessController::class, 'index'])->name('access.index');
+    Route::put('access/{participantType}', [AccessController::class, 'update'])->name('access.update');
     Route::resource('teams', TeamController::class)->except(['show']);
     Route::delete('players/bulk', [PlayerController::class, 'destroySelected'])
         ->name('players.destroy-selected');
@@ -71,4 +74,5 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/leagues.php';
+require __DIR__.'/roles.php';
 require __DIR__.'/tournaments.php';
