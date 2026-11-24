@@ -22,7 +22,7 @@ class PlayerController extends Controller
         $players = Player::query()
             ->where('type_id', 'player')
             ->with(['person', 'teams'])
-            ->withSum('entries as match_goals', 'goals')
+            ->withSum('refereeCardEntries as match_goals', 'goals')
             ->when($search !== '', function ($query) use ($search) {
                 $query->whereHas('person', function ($person) use ($search) {
                     $person->where('first_name', 'like', "%{$search}%")
