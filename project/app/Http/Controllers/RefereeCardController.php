@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Field;
 use App\Models\Game;
 use App\Models\Player;
+use App\Models\Referee;
 use App\Models\RefereeCard;
 use App\Models\RefereeCardPlayer;
 use App\Models\Team;
@@ -23,7 +24,7 @@ class RefereeCardController extends Controller
         $search = mb_substr(trim((string) $request->get('q', '')), 0, 100);
 
         $cards = RefereeCard::query()
-            ->with(['game.localTeam', 'game.visitorTeam', 'field'])
+            ->with(['game.localTeam', 'game.visitorTeam', 'field', 'mainReferee.person'])
             ->withCount('entries')
             ->withCount(['entries as total_indirect_red' => fn ($query) => $query->where('yellow_cards', '>=', RefereeCardPlayer::YELLOW_CARDS_FOR_INDIRECT_RED)])
             ->withSum('entries as total_goals', 'goals')
@@ -60,6 +61,8 @@ class RefereeCardController extends Controller
             'match_id' => $match?->id,
             'field_id' => $match?->field_id,
             'match_date' => $match?->date_time ?? now(),
+            'local_score' => $match?->local_goals,
+            'visitor_score' => $match?->visitor_goals,
         ]);
 
         return view('referee-cards.create', [
@@ -171,6 +174,12 @@ class RefereeCardController extends Controller
 
         $fields = Field::query()->orderBy('name')->get();
 
+        $referees = Referee::query()
+            ->with('person')
+            ->get()
+            ->sortBy(fn (Referee $referee) => $referee->fullName())
+            ->values();
+
         $players = Team::query()
             ->with(['players.person'])
             ->get()
@@ -186,6 +195,7 @@ class RefereeCardController extends Controller
         return [
             'matches' => $matches,
             'fields' => $fields,
+            'referees' => $referees,
             'players' => $players,
             'entries' => $refereeCard?->exists
                 ? $refereeCard->entries->keyBy('player_id')
@@ -232,6 +242,7 @@ class RefereeCardController extends Controller
 
             $card->entries()->create([
                 'player_id' => $playerId,
+                'is_starter' => ! empty($entry['is_starter']),
                 'goals' => (int) ($entry['goals'] ?? 0),
                 'yellow_cards' => $yellowCards,
                 'direct_red_cards' => (int) ($entry['direct_red_cards'] ?? 0),
@@ -246,6 +257,9 @@ class RefereeCardController extends Controller
      */
     private function validatedData(Request $request, ?RefereeCard $refereeCard = null): array
     {
+        $refereeExists = Rule::exists('players', 'id')
+            ->where(fn ($query) => $query->where('type_id', 'referee'));
+
         return $request->validate([
             'match_id' => [
                 'required',
@@ -256,9 +270,16 @@ class RefereeCardController extends Controller
             'field_id' => ['required', 'integer', 'exists:fields,id'],
             'city' => ['required', 'string', 'max:100'],
             'match_date' => ['required', 'date'],
+            'local_score' => ['nullable', 'integer', 'min:0', 'max:999'],
+            'visitor_score' => ['nullable', 'integer', 'min:0', 'max:999'],
             'observations' => ['nullable', 'string', 'max:2000'],
+            'referee1' => ['nullable', 'integer', $refereeExists],
+            'referee2' => ['nullable', 'integer', $refereeExists],
+            'referee3' => ['nullable', 'integer', $refereeExists],
+            'referee4' => ['nullable', 'integer', $refereeExists],
             'players' => ['nullable', 'array'],
             'players.*.selected' => ['nullable', 'boolean'],
+            'players.*.is_starter' => ['nullable', 'boolean'],
             'players.*.goals' => ['nullable', 'integer', 'min:0', 'max:99'],
             'players.*.yellow_cards' => ['nullable', 'integer', 'min:0', 'max:2'],
             'players.*.direct_red_cards' => ['nullable', 'integer', 'min:0', 'max:1'],

@@ -202,11 +202,22 @@ class FootballDemoSeeder extends Seeder
             'notes' => 'Partido programado.',
         ]);
 
+        $referee1 = $this->referee('Ana', 'Pérez');
+        $referee2 = $this->referee('Luis', 'Gómez');
+        $referee3 = $this->referee('Marta', 'Sánchez');
+        $referee4 = $this->referee('Raúl', 'Torres');
+
         $cardId = $this->id('referee_cards', ['match_id' => $finishedMatchId], [
             'field_id' => $fieldId,
             'city' => 'Guadalajara',
             'match_date' => now()->subDays(7)->toDateString(),
+            'local_score' => 2,
+            'visitor_score' => 1,
             'observations' => 'Sin incidencias relevantes.',
+            'referee1' => $referee1,
+            'referee2' => $referee2,
+            'referee3' => $referee3,
+            'referee4' => $referee4,
         ]);
 
         foreach (array_slice($homePlayers, 0, 3) as $player) {
@@ -214,6 +225,7 @@ class FootballDemoSeeder extends Seeder
                 'referee_card_id' => $cardId,
                 'player_id' => $player['id'],
             ], [
+                'is_starter' => true,
                 'goals' => $player['jersey'] === 9 ? 2 : 0,
                 'yellow_cards' => 0,
                 'direct_red_cards' => 0,
@@ -226,6 +238,7 @@ class FootballDemoSeeder extends Seeder
                 'referee_card_id' => $cardId,
                 'player_id' => $player['id'],
             ], [
+                'is_starter' => true,
                 'goals' => $player['jersey'] === 7 ? 1 : 0,
                 'yellow_cards' => $player['jersey'] === 11 ? 1 : 0,
                 'direct_red_cards' => 0,
@@ -273,6 +286,24 @@ class FootballDemoSeeder extends Seeder
         return $created;
     }
 
+    private function referee(string $firstName, string $lastName): int
+    {
+        $personId = $this->id('person_data', [
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+        ], [
+            'birth_date' => now()->subYears(35)->toDateString(),
+            'status' => 'active',
+        ]);
+
+        return $this->id('players', [
+            'person_id' => $personId,
+            'type_id' => 'referee',
+        ], [
+            'goals' => 0,
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $where
      * @param  array<string, mixed>  $values
@@ -282,6 +313,16 @@ class FootballDemoSeeder extends Seeder
         $row = DB::table($table)->where($where)->first();
 
         if ($row) {
+            $updates = $values;
+
+            if (Schema::hasColumn($table, 'updated_at')) {
+                $updates['updated_at'] = now();
+            }
+
+            if ($updates !== []) {
+                DB::table($table)->where('id', $row->id)->update($updates);
+            }
+
             return (int) $row->id;
         }
 
