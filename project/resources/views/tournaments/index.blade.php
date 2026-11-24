@@ -56,14 +56,9 @@
             class="absolute left-1/2 top-full z-30 mt-1 hidden w-48 -translate-x-1/2 rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
         >
             <button
-                type="submit"
-                form="bulk-form"
-                formaction="{{ route('tournaments.destroy', 0) }}" {{-- El ID real se manda por los checkboxes --}}
-                name="_method"
-                value="DELETE"
+                type="button"
                 id="delete-selected"
                 class="block w-full cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
-                onclick="return confirm('¿Eliminar los torneos seleccionados?')"
             >
                 Eliminar
             </button>
@@ -76,8 +71,9 @@
 @endsection
 
 @section('content')
-    <form id="bulk-form" method="POST">
+    <form id="bulk-form" method="POST" action="{{ route('tournaments.destroy-selected') }}">
         @csrf
+        @method('DELETE')
     </form>
 
     <div class="overflow-x-auto">
@@ -138,67 +134,144 @@
             </tbody>
         </table>
     </div>
+
+    {{-- Confirmación propia de la aplicación --}}
+    <dialog
+        id="confirm-delete-tournament"
+        aria-labelledby="confirm-delete-tournament-title"
+        aria-describedby="confirm-delete-tournament-description"
+        class="rounded-xl border border-gray-200 bg-white p-0 shadow-2xl"
+        style="position: fixed; inset: 0; margin: auto; width: min(92vw, 440px); max-height: 85vh; padding: 0; border: 1px solid #e5e7eb; border-radius: 12px; background: white; box-shadow: 0 24px 65px rgba(0,0,0,.25);"
+    >
+        <div class="border-b border-gray-200 px-6 py-5" style="padding: 20px 24px; border-bottom: 1px solid #e5e7eb;">
+            <h2 id="confirm-delete-tournament-title" class="text-lg font-semibold text-gray-900" style="margin: 0; font-size: 18px; font-weight: 600; color: #111827;">
+                ¿Eliminar torneo?
+            </h2>
+            <p id="confirm-delete-tournament-description" class="mt-2 text-sm text-gray-600" style="margin: 10px 0 0; font-size: 14px; color: #4b5563;">
+                ¿Deseas eliminar <strong id="delete-tournament-count"></strong>?
+            </p>
+            <p class="mt-2 text-sm text-gray-500" style="margin: 8px 0 0; font-size: 13px; color: #6b7280;">
+                Esta acción no se puede deshacer.
+            </p>
+        </div>
+        <div class="flex justify-end gap-3 px-6 py-4" style="display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px;">
+            <button
+                type="button"
+                id="cancel-delete-tournament"
+                autofocus
+                class="cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                style="padding: 9px 16px; border: 1px solid #d1d5db; border-radius: 8px; background: white; font-size: 14px; font-weight: 600; color: #374151; cursor: pointer;"
+            >
+                Cancelar
+            </button>
+            <button
+                type="button"
+                id="confirm-delete-tournament-button"
+                class="cursor-pointer rounded-lg border-0 bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+                style="padding: 9px 16px; border: 0; border-radius: 8px; background: #dc2626; font-size: 14px; font-weight: 600; color: white; cursor: pointer;"
+            >
+                Sí, eliminar
+            </button>
+        </div>
+    </dialog>
+    <style>
+        #confirm-delete-tournament::backdrop { background: rgba(15, 23, 42, .55); }
+    </style>
 @endsection
 
+@include('layouts.partials.crud-bulk-scripts')
+
 @push('scripts')
-    <script>
-        const selectAll = document.getElementById('select-all');
-        const checks = () => [...document.querySelectorAll('.row-check:not(:disabled)')];
-        const bulkMenu = document.getElementById('bulk-menu');
-        const bulkToggle = document.getElementById('bulk-menu-toggle');
-        const bulkPanel = document.getElementById('bulk-menu-panel');
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const deleteButton = document.getElementById('delete-selected');
+    const deleteModal = document.getElementById('confirm-delete-tournament');
+    const deleteCount = document.getElementById('delete-tournament-count');
+    const cancelDelete = document.getElementById('cancel-delete-tournament');
+    const confirmDelete = document.getElementById('confirm-delete-tournament-button');
+    const bulkForm = document.getElementById('bulk-form');
+    const bulkPanel = document.getElementById('bulk-menu-panel');
+    const bulkToggle = document.getElementById('bulk-menu-toggle');
+    const selectAll = document.getElementById('select-all');
 
-        function selectedChecks() {
-            return checks().filter((input) => input.checked);
+    if (!deleteButton || !deleteModal || !deleteCount || !cancelDelete || !confirmDelete || !bulkForm) return;
+
+    let submitting = false;
+
+    const checks = () => [...document.querySelectorAll('.row-check:not(:disabled)')];
+    function refreshActions() {
+        const count = checks().filter(i => i.checked).length;
+        const hasSelection = count > 0;
+        if (bulkToggle) {
+            bulkToggle.parentElement.hidden = !hasSelection;
+            bulkToggle.parentElement.classList.toggle('hidden', !hasSelection);
         }
-
-        function setBulkMenuOpen(open) {
-            if (!bulkPanel || !bulkToggle) return;
-            bulkPanel.classList.toggle('hidden', !open);
-            bulkToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        }
-
-        function refreshActions() {
-            const count = selectedChecks().length;
-            if (bulkMenu) {
-                const hasSelection = count > 0;
-                bulkMenu.hidden = !hasSelection;
-                bulkMenu.classList.toggle('hidden', !hasSelection);
-                if (!hasSelection) setBulkMenuOpen(false);
-            }
-            if (selectAll) {
-                const enabled = checks();
-                selectAll.checked = enabled.length > 0 && enabled.every((input) => input.checked);
-            }
-        }
-
-        bulkToggle?.addEventListener('click', (event) => {
-            event.stopPropagation();
-            setBulkMenuOpen(bulkPanel.classList.contains('hidden'));
-        });
-
-        document.addEventListener('click', (event) => {
-            if (bulkMenu && !bulkMenu.contains(event.target)) {
-                setBulkMenuOpen(false);
-            }
-        });
-
-        selectAll?.addEventListener('change', () => {
-            checks().forEach((input) => input.checked = selectAll.checked);
-            refreshActions();
-        });
-
-        document.querySelectorAll('.row-check').forEach((input) => {
-            input.addEventListener('change', refreshActions);
-        });
-
-        document.querySelectorAll('.tournament-row').forEach((row) => {
-            row.addEventListener('click', (event) => {
-                if (event.target.closest('input')) return;
-                window.location.href = row.dataset.editUrl;
-            });
-        });
-
+    }
+    
+    selectAll?.addEventListener('change', () => {
+        checks().forEach((input) => input.checked = selectAll.checked);
         refreshActions();
-    </script>
+    });
+    
+    document.querySelectorAll('.row-check').forEach((input) => {
+        input.addEventListener('change', refreshActions);
+    });
+
+    document.querySelectorAll('.tournament-row').forEach((row) => {
+        row.addEventListener('click', (event) => {
+            if (event.target.closest('input')) return;
+            window.location.href = row.dataset.editUrl;
+        });
+    });
+
+    deleteButton.addEventListener('click', function () {
+        if (submitting) return;
+        const selected = document.querySelectorAll('.row-check:checked:not(:disabled)');
+        if (!selected.length) return;
+
+        deleteCount.textContent = selected.length === 1
+            ? 'al torneo seleccionado'
+            : `a los ${selected.length} torneos seleccionados`;
+        bulkPanel?.classList.add('hidden');
+        bulkToggle?.setAttribute('aria-expanded', 'false');
+        deleteModal.showModal();
+    });
+
+    cancelDelete.addEventListener('click', function () {
+        deleteModal.close();
+    });
+
+    confirmDelete.addEventListener('click', function () {
+        if (submitting) return;
+
+        const selected = [...document.querySelectorAll('.row-check:checked:not(:disabled)')];
+        if (!selected.length) {
+            deleteModal.close();
+            return;
+        }
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = @json(route('tournaments.destroy-selected'));
+        form.style.display = 'none';
+
+        const hiddenField = (name, value) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = String(value);
+            form.appendChild(input);
+        };
+
+        hiddenField('_token', @json(csrf_token()));
+        hiddenField('_method', 'DELETE');
+        selected.forEach((checkbox) => hiddenField('ids[]', checkbox.value));
+
+        submitting = true;
+        confirmDelete.disabled = true;
+        document.body.appendChild(form);
+        form.submit();
+    });
+});
+</script>
 @endpush

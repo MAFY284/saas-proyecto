@@ -1,79 +1,145 @@
 @extends('layouts.crud')
 
-@section('title', 'Editar Torneo')
-@section('module', 'Editar Torneo')
+@section('title', 'Editar torneo')
+@section('subtitle', 'Torneos')
+@section('module', 'Editar torneo')
+
+@section('actions')
+    <button
+        type="submit"
+        form="tournament-form"
+        class="inline-flex cursor-pointer items-center justify-center rounded-lg border-0 bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+    >
+        Guardar
+    </button>
+    <a
+        href="{{ route('tournaments.index') }}"
+        class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-gray-50"
+    >
+        Cancelar
+    </a>
+@endsection
 
 @section('content')
-    <div class="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-        <h1 class="text-xl font-bold text-gray-800 mb-6">Actualizar Torneo</h1>
+    <form id="tournament-form" method="POST" action="{{ route('tournaments.update', $tournament->id) }}" class="h-full w-full">
+        @csrf
+        @method('PUT')
 
-        @if ($errors->any())
-            <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg mb-6 text-sm">
-                <ul class="list-disc pl-5">
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
+        @php
+            $fieldClass = 'w-full rounded-lg border border-gray-300 bg-white px-[0.7rem] py-[0.55rem] font-sans focus:border-blue-600 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-blue-600';
+        @endphp
 
-        <form action="{{ route('tournaments.update', $tournament) }}" method="POST" class="space-y-4">
-            @csrf
-            @method('PUT')
-
+        <div class="grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
+            
+            <!-- Liga Asociada -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Liga Asociada</label>
-                <select name="league_id" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm" required>
-                    @foreach($leagues as $league)
-                        <option value="{{ $league->id }}" {{ old('league_id', $tournament->league_id) == $league->id ? 'selected' : '' }}>
+                <label for="league_id" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Liga Asociada</label>
+                <select id="league_id" name="league_id" required class="{{ $fieldClass }}">
+                    <option value="" disabled hidden>Selecciona una liga</option>
+                    @foreach ($leagues as $league)
+                        <option value="{{ $league->id }}" @selected(old('league_id', $tournament->league_id) == $league->id)>
                             {{ $league->name }}
                         </option>
                     @endforeach
                 </select>
+                @error('league_id')
+                    <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+                @enderror
             </div>
 
+            <!-- Nombre del Torneo -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre del Torneo</label>
-                <input type="text" name="name" value="{{ old('name', $tournament->name) }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm" required>
+                <label for="name" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Nombre del Torneo</label>
+                <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    value="{{ old('name', $tournament->name) }}"
+                    required
+                    class="{{ $fieldClass }}"
+                >
+                @error('name')
+                    <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+                @enderror
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Temporada (Season)</label>
-                    <input type="text" name="season" value="{{ old('season', $tournament->season) }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Formato</label>
-                    <input type="text" name="format" value="{{ old('format', $tournament->format) }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Inicio</label>
-                    <input type="date" name="start_date" value="{{ old('start_date', $tournament->start_date?->format('Y-m-d')) }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Fin</label>
-                    <input type="date" name="end_date" value="{{ old('end_date', $tournament->end_date?->format('Y-m-d')) }}" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm">
-                </div>
-            </div>
-
+            <!-- Temporada -->
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
-                <select name="status" class="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border text-sm" required>
+                <label for="season" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Temporada (Season)</label>
+                <input
+                    id="season"
+                    name="season"
+                    type="text"
+                    placeholder="Ej. 2026-I"
+                    value="{{ old('season', $tournament->season) }}"
+                    class="{{ $fieldClass }}"
+                >
+                @error('season')
+                    <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <!-- Formato -->
+            <div>
+                <label for="format" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Formato</label>
+                <input
+                    id="format"
+                    name="format"
+                    type="text"
+                    placeholder="Ej. Liga / Eliminatoria"
+                    value="{{ old('format', $tournament->format) }}"
+                    class="{{ $fieldClass }}"
+                >
+                @error('format')
+                    <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <!-- Fecha de Inicio -->
+            <div>
+                <label for="start_date" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Fecha de Inicio</label>
+                <input
+                    id="start_date"
+                    name="start_date"
+                    type="date"
+                    value="{{ old('start_date', $tournament->start_date ? \Carbon\Carbon::parse($tournament->start_date)->format('Y-m-d') : '') }}"
+                    class="{{ $fieldClass }}"
+                >
+                @error('start_date')
+                    <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <!-- Fecha de Fin -->
+            <div>
+                <label for="end_date" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Fecha de Fin</label>
+                <input
+                    id="end_date"
+                    name="end_date"
+                    type="date"
+                    value="{{ old('end_date', $tournament->end_date ? \Carbon\Carbon::parse($tournament->end_date)->format('Y-m-d') : '') }}"
+                    class="{{ $fieldClass }}"
+                >
+                @error('end_date')
+                    <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <!-- Estado -->
+            <div>
+                <label for="status" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Estado</label>
+                <select id="status" name="status" required class="{{ $fieldClass }}">
                     @foreach($statuses as $key => $label)
-                        <option value="{{ $key }}" {{ old('status', $tournament->status) == $key ? 'selected' : '' }}>
+                        <option value="{{ $key }}" @selected(old('status', $tournament->status) == $key)>
                             {{ $label }}
                         </option>
                     @endforeach
                 </select>
+                @error('status')
+                    <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+                @enderror
             </div>
 
-            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
-                <a href="{{ route('tournaments.index') }}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium">Cancelar</a>
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold">Actualizar Torneo</button>
-            </div>
-        </form>
-    </div>
+        </div>
+    </form>
 @endsection
