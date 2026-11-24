@@ -85,6 +85,9 @@ class LeagueController extends Controller
 
         if ($request->hasFile('logo')) {
             $league->updateLogo($request->file('logo'));
+        } elseif ($request->boolean('remove_logo')) {
+            $league->deleteLogoFile();
+            $league->logo_url = null;
         }
 
         $league->save();
@@ -219,6 +222,7 @@ class LeagueController extends Controller
             'time_zone' => ['required', 'string', 'max:100', Rule::in(timezone_identifiers_list())],
             'is_active' => ['required', 'boolean'],
             'logo' => ['nullable', 'image', 'max:2048'],
+            'remove_logo' => ['nullable', 'boolean'],
         ], [
             'name.required' => 'El nombre de la liga es obligatorio.',
             'name.unique' => 'Ya existe una liga con este nombre.',

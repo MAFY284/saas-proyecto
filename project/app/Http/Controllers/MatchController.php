@@ -111,11 +111,11 @@ class MatchController extends Controller
 
         $hasReports = Game::query()
             ->whereIn('id', $ids)
-            ->whereHas('report')
+            ->whereHas('refereeCard')
             ->exists();
 
         if ($hasReports) {
-            return back()->with('error', 'No se pueden eliminar partidos que ya tienen un acta registrada.');
+            return back()->with('error', 'No se pueden eliminar partidos que ya tienen una cédula arbitral registrada.');
         }
 
         $deleted = Game::query()->whereIn('id', $ids)->delete();
