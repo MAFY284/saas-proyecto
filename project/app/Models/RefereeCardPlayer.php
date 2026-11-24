@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'referee_card_id',
     'player_id',
+    'is_starter',
     'goals',
     'yellow_cards',
     'direct_red_cards',
@@ -30,6 +31,7 @@ class RefereeCardPlayer extends Model
     protected function casts(): array
     {
         return [
+            'is_starter' => 'boolean',
             'goals' => 'integer',
             'yellow_cards' => 'integer',
             'direct_red_cards' => 'integer',

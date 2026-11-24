@@ -347,7 +347,7 @@ class PlayerController extends Controller
 
                 abort_unless($current->type_id === 'player', 404);
 
-                if ($current->entries()->exists()) {
+                if ($current->refereeCardEntries()->exists()) {
                     throw ValidationException::withMessages([
                         'player' => 'No se puede eliminar este jugador porque tiene registros de partidos.',
                     ]);
@@ -417,7 +417,7 @@ class PlayerController extends Controller
                 }
 
                 foreach ($players as $current) {
-                    if ($current->entries()->exists()) {
+                    if ($current->refereeCardEntries()->exists()) {
                         throw ValidationException::withMessages([
                             'ids' => 'No se eliminó ningún jugador: uno o más tienen registros de partidos.',
                         ]);

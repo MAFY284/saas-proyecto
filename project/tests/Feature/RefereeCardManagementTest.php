@@ -69,6 +69,47 @@ class RefereeCardManagementTest extends TestCase
         ]);
     }
 
+    public function test_guarda_marcador_arbitros_y_titulares(): void
+    {
+        $fixture = $this->fixture();
+        $referee1 = $this->refereeFor('Ana', 'Pérez');
+        $referee2 = $this->refereeFor('Luis', 'Gómez');
+
+        $this->actingAs($fixture['user'])
+            ->post(route('referee-cards.store'), [
+                'match_id' => $fixture['match_id'],
+                'field_id' => $fixture['field_id'],
+                'city' => 'Guadalajara',
+                'match_date' => '2026-11-05',
+                'local_score' => '2',
+                'visitor_score' => '1',
+                'referee1' => $referee1,
+                'referee2' => $referee2,
+                'players' => [
+                    $fixture['local_player'] => ['selected' => '1', 'is_starter' => '1', 'goals' => '2'],
+                    $fixture['visitor_player'] => ['selected' => '1', 'is_starter' => '0', 'goals' => '0'],
+                ],
+            ])
+            ->assertRedirect(route('referee-cards.index'));
+
+        $card = RefereeCard::query()->firstOrFail();
+
+        $this->assertSame(2, $card->local_score);
+        $this->assertSame(1, $card->visitor_score);
+        $this->assertSame($referee1, $card->referee1);
+        $this->assertSame($referee2, $card->referee2);
+        $this->assertDatabaseHas('referee_card_players', [
+            'referee_card_id' => $card->id,
+            'player_id' => $fixture['local_player'],
+            'is_starter' => 1,
+        ]);
+        $this->assertDatabaseHas('referee_card_players', [
+            'referee_card_id' => $card->id,
+            'player_id' => $fixture['visitor_player'],
+            'is_starter' => 0,
+        ]);
+    }
+
     public function test_dos_amarillas_generan_una_roja_indirecta(): void
     {
         $fixture = $this->fixture();
@@ -341,6 +382,20 @@ class RefereeCardManagementTest extends TestCase
             'visitor_player' => $visitorPlayer->id,
             'outsider_player' => $outsiderPlayer->id,
         ];
+    }
+
+    private function refereeFor(string $firstName, string $lastName): int
+    {
+        $person = PersonData::create([
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'status' => 'active',
+        ]);
+
+        return Player::create([
+            'person_id' => $person->id,
+            'type_id' => 'referee',
+        ])->id;
     }
 
     private function playerFor(Team $team, string $firstName, string $lastName): Player

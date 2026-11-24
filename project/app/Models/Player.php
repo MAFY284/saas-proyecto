@@ -41,9 +41,9 @@ class Player extends Model
             ->withTimestamps();
     }
 
-    public function entries(): HasMany
+    public function refereeCardEntries(): HasMany
     {
-        return $this->hasMany(MatchReportPlayer::class);
+        return $this->hasMany(RefereeCardPlayer::class);
     }
 
     public function fullName(): string

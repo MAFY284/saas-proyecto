@@ -80,6 +80,57 @@
         @enderror
     </div>
 
+    <div>
+        <label for="local_score" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Marcador local</label>
+        <input
+            id="local_score"
+            name="local_score"
+            type="number"
+            min="0"
+            max="999"
+            value="{{ old('local_score', $refereeCard->local_score) }}"
+            class="{{ $fieldClass }}"
+        >
+        @error('local_score')
+            <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+        @enderror
+    </div>
+
+    <div>
+        <label for="visitor_score" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Marcador visitante</label>
+        <input
+            id="visitor_score"
+            name="visitor_score"
+            type="number"
+            min="0"
+            max="999"
+            value="{{ old('visitor_score', $refereeCard->visitor_score) }}"
+            class="{{ $fieldClass }}"
+        >
+        @error('visitor_score')
+            <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+        @enderror
+    </div>
+
+    @foreach ([1, 2, 3, 4] as $number)
+        <div>
+            <label for="referee{{ $number }}" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">
+                {{ $number === 1 ? 'Árbitro principal' : 'Árbitro '.$number }}
+            </label>
+            <select id="referee{{ $number }}" name="referee{{ $number }}" class="{{ $fieldClass }}">
+                <option value="">Sin asignar</option>
+                @foreach ($referees as $referee)
+                    <option value="{{ $referee->id }}" @selected(old("referee{$number}", $refereeCard->getAttribute('referee'.$number)) == $referee->id)>
+                        {{ $referee->fullName() }}
+                    </option>
+                @endforeach
+            </select>
+            @error("referee{$number}")
+                <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+            @enderror
+        </div>
+    @endforeach
+
     <div class="md:col-span-2 xl:col-span-3">
         <label for="observations" class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Información general</label>
         <textarea
@@ -130,6 +181,7 @@
                         <th class="w-12 px-3 py-3">Incluir</th>
                         <th class="px-3 py-3">Equipo</th>
                         <th class="px-3 py-3">Jugador</th>
+                        <th class="w-20 px-3 py-3 text-center">Titular</th>
                         <th class="w-20 px-3 py-3 text-center">Goles</th>
                         <th class="w-24 px-3 py-3 text-center">Amarillas</th>
                         <th class="w-28 px-3 py-3 text-center">Roja directa</th>
@@ -162,6 +214,15 @@
                                 @if ($player->pivot?->jersey_number)
                                     <span class="text-xs text-gray-400">#{{ $player->pivot->jersey_number }}</span>
                                 @endif
+                            </td>
+                            <td class="px-3 py-2 text-center">
+                                <input
+                                    type="checkbox"
+                                    name="players[{{ $player->id }}][is_starter]"
+                                    value="1"
+                                    class="rounded border-gray-300"
+                                    @checked(old("players.{$player->id}.is_starter", $entry?->is_starter ?? true))
+                                >
                             </td>
                             <td class="px-3 py-2">
                                 <input

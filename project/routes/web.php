@@ -4,7 +4,6 @@ use App\Http\Controllers\AccessController;
 use App\Http\Controllers\FieldController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MatchController;
-use App\Http\Controllers\MatchReportController;
 use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\PositionController;
 use App\Http\Controllers\RefereeCardController;
@@ -41,11 +40,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('matches/{game?}', [MatchController::class, 'destroy'])->name('matches.destroy');
     Route::resource('matches', MatchController::class)
         ->parameters(['matches' => 'game'])
-        ->except(['show', 'destroy']);
-
-    Route::delete('match-reports/{matchReport?}', [MatchReportController::class, 'destroy'])->name('match-reports.destroy');
-    Route::resource('match-reports', MatchReportController::class)
-        ->parameters(['match-reports' => 'matchReport'])
         ->except(['show', 'destroy']);
 
     Route::delete('referee-cards/{refereeCard?}', [RefereeCardController::class, 'destroy'])->name('referee-cards.destroy');

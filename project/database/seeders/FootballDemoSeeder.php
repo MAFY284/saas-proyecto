@@ -149,11 +149,6 @@ class FootballDemoSeeder extends Seeder
             12 => ['Pablo', 'Portero', 'GK'],
         ]);
 
-        $referee1 = $this->referee('Ana', 'Pérez');
-        $referee2 = $this->referee('Luis', 'Gómez');
-        $referee3 = $this->referee('Marta', 'Sánchez');
-        $referee4 = $this->referee('Raúl', 'Torres');
-
         $tournamentId = $this->id('tournaments', [
             'league_id' => $leagueId,
             'name' => 'Torneo Apertura',
@@ -176,7 +171,7 @@ class FootballDemoSeeder extends Seeder
             'visitor_goals' => 1,
             'matchday' => 1,
             'status' => 'finished',
-            'notes' => 'Partido de demostración con acta.',
+            'notes' => 'Partido de demostración con cédula arbitral.',
         ]);
 
         $this->id('matches', [
@@ -190,7 +185,7 @@ class FootballDemoSeeder extends Seeder
             'visitor_goals' => 0,
             'matchday' => 2,
             'status' => 'finished',
-            'notes' => 'Pendiente de acta para probar el CRUD.',
+            'notes' => 'Pendiente de cédula arbitral para probar el CRUD.',
         ]);
 
         $this->id('matches', [
@@ -207,12 +202,18 @@ class FootballDemoSeeder extends Seeder
             'notes' => 'Partido programado.',
         ]);
 
-        $sheetId = $this->id('match_sheets', ['match_id' => $finishedMatchId], [
-            'match_date' => now()->subDays(7)->setTime(18, 0)->toDateTimeString(),
+        $referee1 = $this->referee('Ana', 'Pérez');
+        $referee2 = $this->referee('Luis', 'Gómez');
+        $referee3 = $this->referee('Marta', 'Sánchez');
+        $referee4 = $this->referee('Raúl', 'Torres');
+
+        $cardId = $this->id('referee_cards', ['match_id' => $finishedMatchId], [
+            'field_id' => $fieldId,
+            'city' => 'Guadalajara',
+            'match_date' => now()->subDays(7)->toDateString(),
             'local_score' => 2,
             'visitor_score' => 1,
-            'incidents' => 'Sin incidencias relevantes.',
-            'status' => 'completed',
+            'observations' => 'Sin incidencias relevantes.',
             'referee1' => $referee1,
             'referee2' => $referee2,
             'referee3' => $referee3,
@@ -220,26 +221,28 @@ class FootballDemoSeeder extends Seeder
         ]);
 
         foreach (array_slice($homePlayers, 0, 3) as $player) {
-            $this->id('match_sheet_players', [
-                'match_sheet_id' => $sheetId,
+            $this->id('referee_card_players', [
+                'referee_card_id' => $cardId,
                 'player_id' => $player['id'],
             ], [
                 'is_starter' => true,
                 'goals' => $player['jersey'] === 9 ? 2 : 0,
                 'yellow_cards' => 0,
-                'red_cards' => 0,
+                'direct_red_cards' => 0,
+                'indirect_red_cards' => 0,
             ]);
         }
 
         foreach (array_slice($awayPlayers, 0, 3) as $player) {
-            $this->id('match_sheet_players', [
-                'match_sheet_id' => $sheetId,
+            $this->id('referee_card_players', [
+                'referee_card_id' => $cardId,
                 'player_id' => $player['id'],
             ], [
                 'is_starter' => true,
                 'goals' => $player['jersey'] === 7 ? 1 : 0,
                 'yellow_cards' => $player['jersey'] === 11 ? 1 : 0,
-                'red_cards' => 0,
+                'direct_red_cards' => 0,
+                'indirect_red_cards' => 0,
             ]);
         }
 
@@ -310,6 +313,16 @@ class FootballDemoSeeder extends Seeder
         $row = DB::table($table)->where($where)->first();
 
         if ($row) {
+            $updates = $values;
+
+            if (Schema::hasColumn($table, 'updated_at')) {
+                $updates['updated_at'] = now();
+            }
+
+            if ($updates !== []) {
+                DB::table($table)->where('id', $row->id)->update($updates);
+            }
+
             return (int) $row->id;
         }
 

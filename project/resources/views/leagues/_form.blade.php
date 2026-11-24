@@ -174,35 +174,157 @@
         @enderror
     </div>
 
+    @php
+        $currentLogoUrl = $league->logoUrl();
+    @endphp
+
     <div class="md:col-span-2 xl:col-span-3">
-        <p class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Logo de la liga</p>
-        <p class="mb-3 text-xs text-gray-500">Arrastra una imagen al recuadro o haz clic para seleccionarla. JPG, PNG o WEBP. Máximo 2 MB.</p>
-        <div data-image-slots>
-            <label
-                class="image-slot image-slot--avatar {{ $league->logoUrl() ? 'has-image' : '' }}"
-                data-image-slot
-                data-slot-index="0"
-            >
-                <span class="image-slot__label">Logo</span>
-                <img
-                    class="image-slot__preview {{ $league->logoUrl() ? '' : 'hidden' }}"
-                    src="{{ $league->logoUrl() }}"
-                    alt=""
+        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div
+                    class="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-2 border-gray-200 bg-white"
+                    style="width: 96px; height: 96px; min-width: 96px; flex: 0 0 96px; overflow: hidden; border-radius: 16px; display: flex; align-items: center; justify-content: center;"
                 >
-                <span class="image-slot__placeholder {{ $league->logoUrl() ? 'hidden' : '' }}">
-                    Arrastra o haz clic
-                </span>
-                <input
-                    id="logo"
-                    class="sr-only"
-                    type="file"
-                    name="logo"
-                    accept="image/*"
-                >
-            </label>
+                    <img
+                        id="league-logo-preview"
+                        @if ($currentLogoUrl) src="{{ $currentLogoUrl }}" @endif
+                        data-original-url="{{ $currentLogoUrl ?? '' }}"
+                        alt="Logo de la liga"
+                        width="96"
+                        height="96"
+                        class="h-full w-full object-cover {{ $currentLogoUrl ? '' : 'hidden' }}"
+                        style="display: {{ $currentLogoUrl ? 'block' : 'none' }}; width: 96px; height: 96px; max-width: 96px; max-height: 96px; object-fit: cover;"
+                    >
+                    <div
+                        id="league-logo-placeholder"
+                        class="flex h-full w-full items-center justify-center text-gray-400 {{ $currentLogoUrl ? 'hidden' : '' }}"
+                        style="display: {{ $currentLogoUrl ? 'none' : 'flex' }}; width: 96px; height: 96px; align-items: center; justify-content: center;"
+                        aria-hidden="true"
+                    >
+                        <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="#9ca3af" stroke-width="1.5" class="h-11 w-11">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75 19 6.5v5.25c0 4.3-2.9 7.15-7 8.5-4.1-1.35-7-4.2-7-8.5V6.5L12 3.75Z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2 2 4-4.5"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="min-w-0 flex-1">
+                    <p class="mb-1.5 block text-[0.9rem] font-semibold text-gray-700">Logo de la liga</p>
+                    <input
+                        id="logo"
+                        name="logo"
+                        type="file"
+                        accept="image/*"
+                        class="{{ $fieldClass }} text-sm"
+                    >
+                    <div class="mt-2 flex flex-wrap items-center gap-3">
+                        <button
+                            id="league-logo-clear"
+                            type="button"
+                            class="text-sm font-medium text-red-600 hover:text-red-800 {{ $currentLogoUrl ? '' : 'hidden' }}"
+                        >
+                            Quitar logo
+                        </button>
+                        <span class="text-xs text-gray-500">Máximo 2 MB · JPG, PNG o WEBP</span>
+                    </div>
+                    @if ($league->exists)
+                        <input id="remove-logo" type="hidden" name="remove_logo" value="0">
+                        <p class="mt-1 text-xs text-gray-500">Puedes mantener el logo, cambiarlo o quitarlo.</p>
+                    @endif
+                </div>
+            </div>
         </div>
+
         @error('logo')
+            <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
+        @enderror
+        @error('remove_logo')
             <span class="mt-1.5 block text-xs text-red-700">{{ $message }}</span>
         @enderror
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const fileInput = document.getElementById('logo');
+    const preview = document.getElementById('league-logo-preview');
+    const placeholder = document.getElementById('league-logo-placeholder');
+    const clearButton = document.getElementById('league-logo-clear');
+    const removeInput = document.getElementById('remove-logo');
+
+    if (!fileInput || !preview || !placeholder || !clearButton) {
+        return;
+    }
+
+    const originalUrl = preview.dataset.originalUrl || '';
+    let objectUrl = null;
+
+    function releasePreview() {
+        if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+            objectUrl = null;
+        }
+    }
+
+    function showPreview(url) {
+        if (url) {
+            preview.src = url;
+            preview.classList.remove('hidden');
+            preview.style.display = 'block';
+            placeholder.classList.add('hidden');
+            placeholder.style.display = 'none';
+        } else {
+            preview.removeAttribute('src');
+            preview.classList.add('hidden');
+            preview.style.display = 'none';
+            placeholder.classList.remove('hidden');
+            placeholder.style.display = 'flex';
+        }
+    }
+
+    function updateClearButton() {
+        const hasNewFile = fileInput.files && fileInput.files.length > 0;
+        const removingOld = removeInput && removeInput.value === '1';
+
+        clearButton.classList.toggle('hidden', !hasNewFile && !originalUrl);
+        clearButton.textContent = hasNewFile
+            ? 'Quitar selección'
+            : removingOld ? 'Deshacer eliminación' : 'Quitar logo';
+    }
+
+    fileInput.addEventListener('change', function () {
+        releasePreview();
+        const file = fileInput.files?.[0];
+
+        if (file) {
+            if (removeInput) removeInput.value = '0';
+            objectUrl = URL.createObjectURL(file);
+            showPreview(objectUrl);
+        } else {
+            showPreview(removeInput?.value === '1' ? '' : originalUrl);
+        }
+
+        updateClearButton();
+    });
+
+    clearButton.addEventListener('click', function () {
+        const hasNewFile = fileInput.files && fileInput.files.length > 0;
+
+        if (hasNewFile) {
+            fileInput.value = '';
+            releasePreview();
+            showPreview(removeInput?.value === '1' ? '' : originalUrl);
+        } else if (originalUrl && removeInput) {
+            removeInput.value = removeInput.value === '1' ? '0' : '1';
+            showPreview(removeInput.value === '1' ? '' : originalUrl);
+        }
+
+        updateClearButton();
+    });
+
+    window.addEventListener('pagehide', releasePreview);
+    updateClearButton();
+});
+</script>
+@endpush

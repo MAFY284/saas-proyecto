@@ -106,8 +106,10 @@
                     </th>
                     <th class="px-3 py-3">Fecha</th>
                     <th class="px-3 py-3">Partido</th>
+                    <th class="px-3 py-3 text-center">Marcador</th>
                     <th class="px-3 py-3">Cancha</th>
                     <th class="px-3 py-3">Ciudad</th>
+                    <th class="px-3 py-3">Árbitro principal</th>
                     <th class="px-3 py-3 text-center">Jugadores</th>
                     <th class="px-3 py-3 text-center">Goles</th>
                     <th class="px-3 py-3 text-center">Amarillas</th>
@@ -136,8 +138,12 @@
                         <td class="px-3 py-3 font-medium text-gray-800">
                             {{ $card->matchLabel() }}
                         </td>
+                        <td class="px-3 py-3 text-center font-semibold tabular-nums text-gray-800">
+                            {{ $card->scoreLabel() }}
+                        </td>
                         <td class="px-3 py-3 text-gray-600">{{ $card->field?->name ?? '—' }}</td>
                         <td class="px-3 py-3 text-gray-600">{{ $card->city }}</td>
+                        <td class="px-3 py-3 text-gray-600">{{ $card->mainReferee?->fullName() ?? '—' }}</td>
                         <td class="px-3 py-3 text-center text-gray-600">{{ $card->entries_count }}</td>
                         <td class="px-3 py-3 text-center font-semibold tabular-nums text-gray-800">
                             {{ $card->total_goals ?? 0 }}
@@ -154,7 +160,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="px-3 py-8 text-center text-gray-500">
+                        <td colspan="12" class="px-3 py-8 text-center text-gray-500">
                             No hay cédulas arbitrales registradas.
                         </td>
                     </tr>

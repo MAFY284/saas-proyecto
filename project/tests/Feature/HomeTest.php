@@ -31,7 +31,8 @@ class HomeTest extends TestCase
             ->assertSee('Usuarios')
             ->assertSee('Gestión')
             ->assertSee('Partidos')
-            ->assertSee('Actas')
+            ->assertSee('Cédulas arbitrales')
+            ->assertDontSee('Actas')
             ->assertSee('Cerrar sesión');
     }
 
