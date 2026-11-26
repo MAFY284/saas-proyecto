@@ -83,7 +83,7 @@ if [ -f "$APP_DIR/.env" ]; then
     gosu www-data php artisan key:generate --force || true
   fi
 
-  gosu www-data php artisan migrate --force \
+  gosu www-data php artisan migrate --force --seed --seeder=DemoAdminSeeder \
     || echo "[entrypoint] migrate skipped"
 
   gosu www-data php artisan config:clear || true

@@ -3,6 +3,12 @@
 @section('title', 'Partidos')
 @section('module', 'Partidos')
 
+@php
+    $canWrite = auth()->user()->canAccess('matches', true);
+    $canCreate = auth()->user()->canAccessAction('matches', 'create');
+    $canDelete = auth()->user()->canAccessAction('matches', 'delete');
+@endphp
+
 @section('header-search')
     <form method="GET" action="{{ route('matches.index') }}" role="search">
         <label for="crud-search" class="sr-only">Buscar partidos</label>
@@ -30,6 +36,7 @@
     </form>
 @endsection
 
+@if ($canCreate)
 @section('actions')
     <a
         href="{{ route('matches.create') }}"
@@ -39,6 +46,9 @@
     </a>
 @endsection
 
+@endif
+
+@if ($canDelete)
 @section('header-center')
     <div id="bulk-menu" class="relative hidden" hidden>
         <button
@@ -70,15 +80,18 @@
         </div>
     </div>
 @endsection
+@endif
 
 @section('header-right')
     @include('pagination.header', ['paginator' => $games])
 @endsection
 
 @section('content')
-    <form id="bulk-form" method="POST">
-        @csrf
-    </form>
+    @if ($canDelete)
+        <form id="bulk-form" method="POST">
+            @csrf
+        </form>
+    @endif
 
     <form method="GET" action="{{ route('matches.index') }}" class="mb-5 flex flex-wrap items-end gap-3">
         <input type="hidden" name="q" value="{{ $search }}">
@@ -134,14 +147,16 @@
         <table class="min-w-full border-collapse text-left text-sm">
             <thead>
                 <tr class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
-                    <th class="w-10 px-3 py-3">
-                        <input
-                            id="select-all"
-                            type="checkbox"
-                            class="rounded border-gray-300"
-                            aria-label="Seleccionar todos"
-                        >
-                    </th>
+                    @if ($canDelete)
+                        <th class="w-10 px-3 py-3">
+                            <input
+                                id="select-all"
+                                type="checkbox"
+                                class="rounded border-gray-300"
+                                aria-label="Seleccionar todos"
+                            >
+                        </th>
+                    @endif
                     <th class="px-3 py-3">Fecha</th>
                     <th class="px-3 py-3">Torneo</th>
                     <th class="px-3 py-3">Local</th>
@@ -154,18 +169,22 @@
             <tbody>
                 @forelse ($games as $game)
                     <tr
-                        data-edit-url="{{ route('matches.edit', $game) }}"
-                        class="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                        @if ($canWrite)
+                            data-edit-url="{{ route('matches.edit', $game) }}"
+                        @endif
+                        class="border-b border-gray-100 {{ $canWrite ? 'cursor-pointer hover:bg-gray-50' : '' }}"
                     >
-                        <td class="px-3 py-3" onclick="event.stopPropagation()">
-                            <input
-                                form="bulk-form"
-                                type="checkbox"
-                                name="ids[]"
-                                value="{{ $game->id }}"
-                                class="row-check rounded border-gray-300"
-                            >
-                        </td>
+                        @if ($canDelete)
+                            <td class="px-3 py-3" onclick="event.stopPropagation()">
+                                <input
+                                    form="bulk-form"
+                                    type="checkbox"
+                                    name="ids[]"
+                                    value="{{ $game->id }}"
+                                    class="row-check rounded border-gray-300"
+                                >
+                            </td>
+                        @endif
                         <td class="px-3 py-3 text-gray-600">
                             {{ $game->date_time?->format('d/m/Y H:i') ?? '—' }}
                         </td>
@@ -182,12 +201,14 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-3 py-8 text-center text-gray-500">No hay partidos registrados.</td>
+                        <td colspan="{{ $canDelete ? 8 : 7 }}" class="px-3 py-8 text-center text-gray-500">No hay partidos registrados.</td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 
-    @include('layouts.partials.crud-bulk-scripts')
+    @if ($canWrite || $canDelete)
+        @include('layouts.partials.crud-bulk-scripts')
+    @endif
 @endsection

@@ -20,11 +20,20 @@ class Permission extends Model
 
     public const UPDATED_AT = null;
 
+    public const ACTIONS = [
+        'read' => 'Lectura',
+        'write' => 'Escritura',
+        'create' => 'Creación',
+        'delete' => 'Eliminación',
+    ];
+
     public const RESOURCES = [
         'users' => 'Usuarios',
         'leagues' => 'Ligas',
         'teams' => 'Equipos',
+        'players' => 'Jugadores',
         'matches' => 'Partidos',
+        'referee_cards' => 'Cédulas arbitrales',
         'tournaments' => 'Torneos',
         'fields' => 'Canchas',
         'roles' => 'Roles y Permisos',
@@ -34,7 +43,9 @@ class Permission extends Model
         'users' => 'users',
         'leagues' => 'leagues',
         'teams' => 'teams',
+        'players' => 'players',
         'matches' => 'matches',
+        'referee_cards' => 'referee_cards',
         'tournaments' => 'tournaments',
         'fields' => 'fields',
         'roles' => 'roles',

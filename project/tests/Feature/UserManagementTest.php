@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Models\Language;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,7 +22,7 @@ class UserManagementTest extends TestCase
 
     public function test_se_puede_crear_un_usuario_con_los_campos_de_la_tabla(): void
     {
-        $actor = User::factory()->create();
+        $actor = User::factory()->create(['email' => User::BOOTSTRAP_ADMIN_EMAIL]);
         $language = Language::factory()->create();
 
         $this->actingAs($actor)
@@ -49,7 +50,7 @@ class UserManagementTest extends TestCase
 
     public function test_crear_usuario_rechaza_cada_restriccion_de_campo(): void
     {
-        $actor = User::factory()->create();
+        $actor = User::factory()->create(['email' => User::BOOTSTRAP_ADMIN_EMAIL]);
         User::factory()->create(['email' => 'ana.ruiz@example.com']);
 
         $tooLongName = str_repeat('a', 51);
@@ -65,7 +66,7 @@ class UserManagementTest extends TestCase
             ['last_name', ['last_name' => $tooLongName], 'El apellido no puede superar 50 caracteres.'],
             ['name', ['name' => $tooLongName], 'El nombre visible no puede superar 50 caracteres.'],
             ['email', ['email' => ''], 'El email es obligatorio.'],
-            ['email', ['email' => 'no-es-correo'], 'El email no es válido.'],
+            ['email', ['email' => 'no-es-correo'], 'El email debe contener exactamente un símbolo @.'],
             ['email', ['email' => 'ana.ruiz@example.com'], 'El email ya está en uso.'],
             ['phone', ['phone' => str_repeat('1', 51)], 'El teléfono no puede superar 50 caracteres.'],
             ['time_zone', ['time_zone' => ''], 'La zona horaria es obligatoria.'],
@@ -102,7 +103,7 @@ class UserManagementTest extends TestCase
 
     public function test_editar_sin_password_conserva_la_contrasena_y_actualiza_los_demas_campos(): void
     {
-        $actor = User::factory()->create();
+        $actor = User::factory()->create(['email' => User::BOOTSTRAP_ADMIN_EMAIL]);
         $user = User::factory()->create([
             'email' => 'ana.ruiz@example.com',
             'phone' => '111',
@@ -129,7 +130,7 @@ class UserManagementTest extends TestCase
 
     public function test_editar_rechaza_correos_invalidos_y_duplicados(): void
     {
-        $actor = User::factory()->create();
+        $actor = User::factory()->create(['email' => User::BOOTSTRAP_ADMIN_EMAIL]);
         $user = User::factory()->create(['email' => 'ana.ruiz@example.com']);
         $other = User::factory()->create(['email' => 'otro@example.com']);
 
@@ -147,7 +148,7 @@ class UserManagementTest extends TestCase
 
     public function test_se_puede_eliminar_otro_usuario_pero_no_la_propia_cuenta(): void
     {
-        $actor = User::factory()->create();
+        $actor = User::factory()->create(['email' => User::BOOTSTRAP_ADMIN_EMAIL]);
         $other = User::factory()->create();
 
         $this->actingAs($actor)
@@ -165,47 +166,53 @@ class UserManagementTest extends TestCase
         $this->assertModelExists($actor);
     }
 
-    public function test_se_puede_asignar_y_actualizar_tipo_de_participante(): void
+    public function test_guardar_como_administrador_quita_los_tipos_asignados(): void
     {
-        $actor = User::factory()->create();
+        $actor = User::factory()->create(['email' => User::BOOTSTRAP_ADMIN_EMAIL]);
         $user = User::factory()->create();
+        $player = Role::factory()->create(['name' => 'Jugador', 'slug' => 'jugador']);
+        $referee = Role::factory()->create(['name' => 'Árbitro', 'slug' => 'arbitro']);
+        $untouched = Role::factory()->create(['name' => 'Tipo inactivo', 'is_active' => false]);
+        $payload = $this->userPayload(['email' => $user->email]);
 
-        // 1. Asignar tipo 'arbitro'
-        $this->actingAs($actor)
-            ->put(route('users.update', $user), $this->userPayload([
-                'email' => $user->email,
-                'participant_type' => 'arbitro',
-            ]))
-            ->assertRedirect(route('users.index'))
-            ->assertSessionHas('status', 'Usuario actualizado.');
+        $this->actingAs($actor)->get(route('users.edit', $user))
+            ->assertOk()->assertSee('name="participant_role_ids[]"', false)
+            ->assertDontSee($untouched->name);
 
-        $user->refresh();
-        $this->assertSame('arbitro', $user->participantType());
-        $this->assertSame('Árbitro', $user->participantTypeLabel());
+        $this->put(route('users.update', $user), [
+            ...$payload,
+            'participant_types_present' => '1',
+            'participant_role_ids' => [$player->id, $referee->id],
+        ])->assertRedirect(route('users.index'));
 
-        // 2. Cambiar tipo a 'entrenador'
-        $this->actingAs($actor)
-            ->put(route('users.update', $user), $this->userPayload([
-                'email' => $user->email,
-                'participant_type' => 'entrenador',
-            ]))
+        $this->assertEqualsCanonicalizing([$player->id, $referee->id], $user->participantRoles()->modelKeys());
+        $this->get(route('users.index'))->assertSee('Jugador')->assertSee('Árbitro');
+
+        $this->put(route('users.update', $user), [...$payload, 'is_admin' => true])
             ->assertRedirect(route('users.index'));
 
-        $user->refresh();
-        $this->assertSame('entrenador', $user->participantType());
-        $this->assertSame('Entrenador', $user->participantTypeLabel());
+        $this->assertTrue($user->fresh()->isAdmin());
+        $this->assertTrue($user->fresh()->participantRoles()->isEmpty());
+        $response = $this->get(route('users.edit', $user))->assertOk();
+        $this->assertMatchesRegularExpression('/<fieldset[^>]*id="participant-types-fields"[^>]*\bdisabled\b/', $response->getContent());
 
-        // 3. Quitar tipo de participante
-        $this->actingAs($actor)
-            ->put(route('users.update', $user), $this->userPayload([
-                'email' => $user->email,
-                'participant_type' => '',
-            ]))
+        $this->put(route('users.update', $user), [
+            ...$payload,
+            'is_admin' => true,
+            'participant_role_ids' => [$player->id],
+        ])->assertRedirect(route('users.index'));
+        $this->assertTrue($user->fresh()->participantRoles()->isEmpty());
+
+        $this->put(route('users.update', $user), [
+            ...$payload,
+            'participant_role_ids' => [Role::query()->where('slug', Role::ADMIN_SLUG)->value('id')],
+        ])->assertSessionHasErrors('participant_role_ids.0');
+
+        $this->put(route('users.update', $user), [...$payload, 'is_admin' => false])
             ->assertRedirect(route('users.index'));
 
-        $user->refresh();
-        $this->assertNull($user->participantType());
-        $this->assertSame('—', $user->participantTypeLabel());
+        $this->assertFalse($user->fresh()->isAdmin());
+        $this->assertSame('—', $user->participantTypesLabel());
     }
 
     /**

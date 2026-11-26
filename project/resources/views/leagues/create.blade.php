@@ -13,7 +13,7 @@
         Guardar
     </button>
     <a
-        href="{{ route('leagues.index') }}"
+        href="{{ route(auth()->user()->canAccess('leagues') ? 'leagues.index' : 'home') }}"
         class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-gray-50"
     >
         Cancelar

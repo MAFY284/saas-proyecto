@@ -9,6 +9,7 @@ use App\Models\League;
 use App\Models\Permission;
 use App\Models\Role;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -20,8 +21,7 @@ class RoleController extends Controller
         $search = mb_substr(trim((string) $request->get('q', '')), 0, 100);
 
         $roles = Role::query()
-            ->with(['permissions'])
-            ->where('slug', 'not like', 'participant%')
+            ->participantTypes()
             ->when($search !== '', function ($query) use ($search) {
                 $like = '%'.addcslashes($search, '%_\\').'%';
                 $dateLike = '%'.str_replace(['/', '.'], '-', addcslashes($search, '%_\\')).'%';
@@ -48,22 +48,11 @@ class RoleController extends Controller
             'is_active' => true,
         ]);
 
-        return view('roles.create', [
-            'role' => $role,
-            'leagues' => League::query()->orderBy('name')->get(),
-            'availableResources' => Permission::RESOURCES,
-            'rolePermissions' => [],
-            'hasReadPermission' => false,
-            'hasWritePermission' => false,
-        ]);
+        return view('roles.create', compact('role'));
     }
 
     public function store(Request $request)
     {
-        if (auth()->check() && ! auth()->user()->canWrite()) {
-            return back()->with('error', 'No tienes permisos de escritura para crear roles.');
-        }
-
         $data = $this->validatedData($request);
 
         $role = new Role;
@@ -93,9 +82,10 @@ class RoleController extends Controller
             $role->league_id = $leagueId;
         }
 
-        $role->save();
-
-        $this->syncRolePermissions($role, $request);
+        DB::transaction(function () use ($role) {
+            $role->save();
+            $this->copyLegacyAccess($role, $role, inherit: false);
+        });
 
         return redirect()
             ->route('roles.index')
@@ -104,33 +94,17 @@ class RoleController extends Controller
 
     public function edit(Role $role)
     {
-        $role->load('permissions');
+        abort_unless($role->isParticipantType(), 404);
 
-        $rolePermissions = [];
-        foreach ($role->permissions as $permission) {
-            $rolePermissions[$permission->resource] = [
-                'read' => (bool) $permission->can_read,
-                'write' => (bool) $permission->can_write,
-            ];
-        }
-
-        return view('roles.edit', [
-            'role' => $role,
-            'leagues' => League::query()->orderBy('name')->get(),
-            'availableResources' => Permission::RESOURCES,
-            'rolePermissions' => $rolePermissions,
-            'hasReadPermission' => $role->hasReadPermission(),
-            'hasWritePermission' => $role->hasWritePermission(),
-        ]);
+        return view('roles.edit', compact('role'));
     }
 
     public function update(Request $request, Role $role)
     {
-        if (auth()->check() && ! auth()->user()->canWrite()) {
-            return back()->with('error', 'No tienes permisos de escritura para modificar roles.');
-        }
+        abort_unless($role->isParticipantType(), 404);
 
         $data = $this->validatedData($request, $role);
+        $previousRole = clone $role;
 
         $role->name = $data['name'];
         $role->slug = $data['slug'];
@@ -141,9 +115,13 @@ class RoleController extends Controller
             $role->league_id = $data['league_id'] ?? $request->input('league_id');
         }
 
-        $role->save();
+        DB::transaction(function () use ($role, $previousRole) {
+            if ($role->isDirty('slug') || $role->participantType() !== $previousRole->participantType()) {
+                $this->copyLegacyAccess($role, $previousRole);
+            }
 
-        $this->syncRolePermissions($role, $request);
+            $role->save();
+        });
 
         return redirect()
             ->route('roles.index')
@@ -152,10 +130,6 @@ class RoleController extends Controller
 
     public function destroy(Request $request, ?Role $role = null)
     {
-        if (auth()->check() && ! auth()->user()->canWrite()) {
-            return back()->with('error', 'No tienes permisos de escritura para eliminar roles.');
-        }
-
         $ids = collect($request->input('ids', []))
             ->when($role?->id, fn ($ids, $id) => $ids->push($id))
             ->map(fn ($id) => (int) $id)
@@ -170,6 +144,8 @@ class RoleController extends Controller
         $roles = Role::query()
             ->whereIn('id', $ids)
             ->get();
+
+        abort_if($roles->contains(fn (Role $item) => ! $item->isParticipantType()), 404);
 
         // Verificar si hay usuarios asignados (solo si la columna user_id existe en user_roles)
         try {
@@ -213,6 +189,8 @@ class RoleController extends Controller
             'ids.min' => 'Selecciona al menos un rol.',
         ]);
 
+        abort_unless(Role::query()->participantTypes()->whereKey($data['ids'])->count() === count(array_unique($data['ids'])), 404);
+
         $count = count($data['ids']);
 
         return back()->with(
@@ -238,93 +216,60 @@ class RoleController extends Controller
 
         $validated = $request->validate([
             'league_id' => ['nullable', 'integer'],
-            'name' => ['required', 'string', 'max:100', $uniqueName],
-            'slug' => ['nullable', 'string', 'max:100', $uniqueSlug],
+            'name' => ['required', 'string', 'max:100'],
+            'slug' => ['nullable', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:255'],
             'is_active' => ['required', 'boolean'],
-            'can_read' => ['nullable', 'boolean'],
-            'can_write' => ['nullable', 'boolean'],
-            'type_read' => ['nullable', 'boolean'],
-            'type_write' => ['nullable', 'boolean'],
-            'permissions' => ['nullable', 'array'],
         ], [
-            'name.required' => 'El nombre del rol es obligatorio.',
-            'name.unique' => 'Ya existe un rol con este nombre.',
-            'slug.unique' => 'Ya existe un rol con este slug.',
+            'name.required' => 'El nombre del tipo es obligatorio.',
         ]);
 
-        $name = trim($validated['name']);
-        $slug = trim((string) ($validated['slug'] ?? ''));
+        $slug = $validated['slug'] ?? $role?->slug ?? $validated['name'];
 
-        if ($slug === '') {
-            $slug = Str::slug($name);
-        } else {
+        if ($slug !== $role?->slug) {
             $slug = Str::slug($slug);
         }
 
-        $validated['name'] = $name;
+        $request->merge(['slug' => $slug]);
+        $request->validate([
+            'slug' => ['required', 'max:100', $uniqueSlug, Rule::notIn(Role::SYSTEM_SLUGS)],
+            'name' => [
+                $uniqueName,
+                function (string $attribute, string $value, \Closure $fail): void {
+                    if (in_array(Str::slug($value), Role::SYSTEM_SLUGS, true)) {
+                        $fail('Este nombre está reservado.');
+                    }
+                },
+            ],
+        ], [
+            'slug.required' => 'Escribe un identificador válido para este tipo.',
+            'slug.unique' => 'Ya existe un tipo de participante con este identificador.',
+            'slug.not_in' => 'Este identificador está reservado.',
+            'name.unique' => 'Ya existe un tipo de participante con este nombre.',
+        ]);
+
         $validated['slug'] = $slug;
-        $validated['is_active'] = (bool) $validated['is_active'];
 
         return $validated;
     }
 
-    /**
-     * Sincroniza permisos generales (Lectura / Escritura) por rol.
-     * Cada rol tiene sus propios registros de permisos usando el slug del rol como prefijo
-     * en el nombre del recurso (ej. "admin_sistema", "usuario_sistema"), lo que evita
-     * que actualizar un rol modifique los permisos de otro.
-     */
-    private function syncRolePermissions(Role $role, Request $request): void
+    private function copyLegacyAccess(Role $role, Role $previousRole, bool $inherit = true): void
     {
-        $canRead  = $request->boolean('can_read')  || $request->boolean('type_read');
-        $canWrite = $request->boolean('can_write') || $request->boolean('type_write');
-        $submittedPermissions = (array) $request->input('permissions', []);
+        $previousRole->loadMissing('permissions');
+        $legacyKeys = array_map($previousRole->legacyAccessKey(...), array_keys(Permission::RESOURCES));
+        $legacyPermissions = Permission::query()->whereIn('resource', $legacyKeys)->get()->keyBy('resource');
 
-        // Prefijo único por rol para aislar sus permisos
-        $prefix = $role->slug . '_';
-
-        $permissionIds = [];
-
-        // 1. Permiso general del sistema (modo simplificado Administrador / Usuario)
-        $systemResource = $prefix . 'sistema';
-        $systemPerm = Permission::updateOrCreate(
-            ['resource' => $systemResource],
-            [
-                'can_read'   => $canRead ? 1 : 0,
-                'can_write'  => $canWrite ? 1 : 0,
-                'can_create' => $canWrite ? 1 : 0,
-                'can_delete' => $canWrite ? 1 : 0,
-            ]
-        );
-        $permissionIds[] = $systemPerm->id;
-
-        // 2. Permisos de recursos base (guardado para uso futuro con permisos granulares)
-        foreach (Permission::RESOURCES as $resourceKey => $resourceLabel) {
-            $resourceName = $prefix . $resourceKey;
-
-            // Si hay desglose granular para este recurso, usa esos valores
-            $hasModularRead  = !empty($submittedPermissions[$resourceKey]['read']);
-            $hasModularWrite = !empty($submittedPermissions[$resourceKey]['write']);
-
-            // Si hay desglose, usa el desglose; si no, hereda los flags globales
-            $read  = $hasModularRead  || ($canRead  && !array_key_exists($resourceKey, $submittedPermissions));
-            $write = $hasModularWrite || ($canWrite && !array_key_exists($resourceKey, $submittedPermissions));
-
-            if ($read || $write) {
-                $perm = Permission::updateOrCreate(
-                    ['resource' => $resourceName],
-                    [
-                        'can_read'   => $read ? 1 : 0,
-                        'can_write'  => $write ? 1 : 0,
-                        'can_create' => $write ? 1 : 0,
-                        'can_delete' => $write ? 1 : 0,
-                    ]
-                );
-                $permissionIds[] = $perm->id;
+        foreach (array_keys(Permission::RESOURCES) as $resource) {
+            if (! $inherit && ! $legacyPermissions->has($previousRole->legacyAccessKey($resource))) {
+                continue;
             }
-        }
 
-        $role->permissions()->sync(array_unique($permissionIds));
+            $flags = [];
+            foreach (array_keys(Permission::ACTIONS) as $action) {
+                $flags['can_'.$action] = $inherit && $previousRole->accessPermission($legacyPermissions, $resource, $action);
+            }
+
+            Permission::query()->firstOrCreate(['resource' => $role->accessKey($resource)], $flags);
+        }
     }
 }

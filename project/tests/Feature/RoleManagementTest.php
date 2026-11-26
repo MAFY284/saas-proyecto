@@ -29,141 +29,39 @@ class RoleManagementTest extends TestCase
         $this->get(route('roles.create'))->assertRedirect(route('login'));
     }
 
-    public function test_usuario_autenticado_ve_roles_administrador_y_usuario(): void
+    public function test_solo_los_tipos_de_participante_aparecen_en_roles_acceso_y_usuarios(): void
     {
         $actor = $this->createAuthenticatedUser();
+        $legacy = Role::factory()->create(['name' => 'Árbitro', 'slug' => 'participant:arbitro']);
+        $systemRole = Role::factory()->create(['name' => 'Administrador', 'slug' => 'admin']);
+        Role::factory()->create(['name' => 'Usuario estándar', 'slug' => 'usuario']);
 
-        $admin = Role::create([
-            'name' => 'Administrador',
-            'slug' => 'admin',
-            'description' => 'Acceso total',
-            'is_active' => true,
-        ]);
-        $readWritePerm = Permission::create([
-            'resource' => 'sistema',
-            'can_read' => true,
-            'can_write' => true,
-        ]);
-        $admin->permissions()->attach($readWritePerm->id);
+        $this->actingAs($actor)->get(route('roles.create'))
+            ->assertOk()->assertSee('name="name"', false)->assertDontSee('handleRolePreset');
+        $this->post(route('roles.store'), ['name' => 'Delegada deportiva', 'is_active' => true])
+            ->assertRedirect(route('roles.index'));
 
-        $user = Role::create([
-            'name' => 'Usuario',
-            'slug' => 'usuario',
-            'description' => 'Usuario estándar',
-            'is_active' => true,
-        ]);
-        $readPerm = Permission::create([
-            'resource' => 'sistema',
-            'can_read' => true,
-            'can_write' => false,
-        ]);
-        $user->permissions()->attach($readPerm->id);
+        foreach (['roles.index', 'access.index', 'users.create'] as $route) {
+            $this->get(route($route))->assertOk()
+                ->assertSee('Delegada deportiva')
+                ->assertSee($legacy->name)
+                ->assertDontSee('Usuario estándar');
+        }
 
-        $response = $this->actingAs($actor)->get(route('roles.index'));
-
-        $response->assertOk();
-        $response->assertSee('Roles y Permisos');
-        $response->assertSee('Administrador');
-        $response->assertSee('admin');
-        $response->assertSee('Usuario');
-        $response->assertSee('usuario');
-
-        $this->assertTrue($admin->hasReadPermission());
-        $this->assertTrue($admin->hasWritePermission());
-        $this->assertTrue($user->hasReadPermission());
-        $this->assertFalse($user->hasWritePermission());
+        $this->get(route('roles.edit', $systemRole))->assertNotFound();
+        $this->put(route('access.update', 'role-'.$systemRole->id))->assertNotFound();
     }
 
-    public function test_se_puede_crear_un_rol_con_permisos_de_lectura_por_casilla(): void
+    public function test_los_nombres_y_slugs_de_sistema_estan_reservados(): void
     {
-        $actor = $this->createAuthenticatedUser();
+        $this->actingAs($this->createAuthenticatedUser());
 
-        $response = $this->actingAs($actor)->post(route('roles.store'), [
-            'name' => 'Auditor',
-            'slug' => 'auditor',
-            'description' => 'Rol únicamente de lectura para auditoría.',
-            'is_active' => '1',
-            'can_read' => '1',
-            'can_write' => '0',
-        ]);
+        $this->post(route('roles.store'), ['name' => 'ADMINISTRADOR', 'is_active' => true])
+            ->assertSessionHasErrors(['name', 'slug']);
+        $this->post(route('roles.store'), ['name' => 'Nuevo tipo', 'slug' => 'USUARIO', 'is_active' => true])
+            ->assertSessionHasErrors('slug');
 
-        $response->assertRedirect(route('roles.index'));
-        $response->assertSessionHas('status', 'Rol creado correctamente.');
-
-        $role = Role::query()->where('slug', 'auditor')->first();
-        $this->assertNotNull($role);
-        $this->assertSame('Auditor', $role->name);
-        $this->assertTrue($role->is_active);
-
-        $this->assertTrue($role->hasReadPermission());
-        $this->assertFalse($role->hasWritePermission());
-    }
-
-    public function test_se_puede_crear_un_rol_con_permisos_de_escritura_por_casilla(): void
-    {
-        $actor = $this->createAuthenticatedUser();
-
-        $response = $this->actingAs($actor)->post(route('roles.store'), [
-            'name' => 'Editor',
-            'slug' => 'editor',
-            'description' => 'Rol con permisos de escritura.',
-            'is_active' => '1',
-            'can_read' => '0',
-            'can_write' => '1',
-        ]);
-
-        $response->assertRedirect(route('roles.index'));
-        $response->assertSessionHas('status', 'Rol creado correctamente.');
-
-        $role = Role::query()->where('slug', 'editor')->first();
-        $this->assertNotNull($role);
-        $this->assertTrue($role->hasWritePermission());
-    }
-
-    public function test_se_puede_crear_un_rol_con_permisos_de_lectura_y_escritura(): void
-    {
-        $actor = $this->createAuthenticatedUser();
-
-        $response = $this->actingAs($actor)->post(route('roles.store'), [
-            'name' => 'Super Administrador',
-            'slug' => 'super-admin',
-            'description' => 'Rol con ambos permisos.',
-            'is_active' => '1',
-            'can_read' => '1',
-            'can_write' => '1',
-        ]);
-
-        $response->assertRedirect(route('roles.index'));
-
-        $role = Role::query()->where('slug', 'super-admin')->first();
-        $this->assertNotNull($role);
-        $this->assertTrue($role->hasReadPermission());
-        $this->assertTrue($role->hasWritePermission());
-    }
-
-    public function test_compatibilidad_futura_con_desglose_por_modulos(): void
-    {
-        $actor = $this->createAuthenticatedUser();
-
-        $response = $this->actingAs($actor)->post(route('roles.store'), [
-            'name' => 'Gestor Especial',
-            'slug' => 'gestor-especial',
-            'description' => 'Permisos por módulos guardados para el futuro',
-            'is_active' => '1',
-            'permissions' => [
-                'leagues' => ['read' => '1', 'write' => '1'],
-                'users' => ['read' => '1', 'write' => '0'],
-            ],
-        ]);
-
-        $response->assertRedirect(route('roles.index'));
-
-        $role = Role::query()->where('slug', 'gestor-especial')->first();
-        $this->assertNotNull($role);
-        $this->assertTrue($role->hasReadPermission('leagues'));
-        $this->assertTrue($role->hasWritePermission('leagues'));
-        $this->assertTrue($role->hasReadPermission('users'));
-        $this->assertFalse($role->hasWritePermission('users'));
+        $this->assertDatabaseCount('roles', 0);
     }
 
     public function test_slug_se_genera_automaticamente_si_no_se_provee(): void
@@ -207,7 +105,7 @@ class RoleManagementTest extends TestCase
         $responseDuplicate->assertSessionHasErrors(['name', 'slug']);
     }
 
-    public function test_se_puede_editar_un_rol_y_sus_permisos(): void
+    public function test_renombrar_un_tipo_conserva_el_acceso_guardado_anteriormente(): void
     {
         $actor = $this->createAuthenticatedUser();
 
@@ -217,6 +115,8 @@ class RoleManagementTest extends TestCase
             'description' => 'Original',
             'is_active' => true,
         ]);
+
+        Permission::create(['resource' => 'access:mesa-control:leagues', 'can_read' => true, 'can_write' => true]);
 
         $response = $this->actingAs($actor)->get(route('roles.edit', $role));
         $response->assertOk();
@@ -236,8 +136,11 @@ class RoleManagementTest extends TestCase
 
         $this->assertSame('Mesa de Control Modificada', $role->name);
         $this->assertSame('mesa-control-modificada', $role->slug);
-        $this->assertTrue($role->hasReadPermission());
-        $this->assertTrue($role->hasWritePermission());
+        $this->assertDatabaseHas('permissions', [
+            'resource' => $role->accessKey('leagues'),
+            'can_read' => true,
+            'can_write' => true,
+        ]);
     }
 
     public function test_se_puede_eliminar_un_rol(): void
@@ -293,6 +196,7 @@ class RoleManagementTest extends TestCase
         );
 
         return User::factory()->create([
+            'email' => User::BOOTSTRAP_ADMIN_EMAIL,
             'language_id' => $language->id,
         ]);
     }

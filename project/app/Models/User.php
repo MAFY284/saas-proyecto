@@ -6,6 +6,7 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -14,6 +15,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 #[Fillable([
     'language_id',
@@ -32,6 +34,8 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    public const BOOTSTRAP_ADMIN_EMAIL = 'admin@admin.com';
 
     /**
      * @return array<string, string>
@@ -96,7 +100,7 @@ class User extends Authenticatable
         return $this->belongsToMany(Role::class, 'user_roles', 'league_user_id', 'role_id');
     }
 
-    public function getRoles()
+    public function getRoles(): Collection
     {
         try {
             // 1. Si la tabla user_roles tiene 'league_user_id' y existe 'league_users'
@@ -125,13 +129,13 @@ class User extends Authenticatable
             // 3. Si users tiene 'role_id'
             if (Schema::hasColumn('users', 'role_id') && ! empty($this->role_id)) {
                 $role = Role::find($this->role_id);
-                return $role ? collect([$role]) : collect();
+                return new Collection($role ? [$role] : []);
             }
         } catch (\Throwable $e) {
             // Ignorar errores
         }
 
-        return collect();
+        return new Collection;
     }
 
     public function role(): ?Role
@@ -139,38 +143,9 @@ class User extends Authenticatable
         try {
             $roles = $this->getRoles();
 
-            // Prioridad 1: Rol de Administrador
-            $adminRole = $roles->first(function ($r) {
-                $slug = strtolower((string) $r->slug);
-                $name = strtolower((string) $r->name);
-                return str_contains($slug, 'admin') || str_contains($name, 'admin');
-            });
-
-            if ($adminRole) {
-                return $adminRole;
-            }
-
-            // Prioridad 2: Rol estándar de Usuario
-            $userRole = $roles->first(function ($r) {
-                $slug = strtolower((string) $r->slug);
-                $name = strtolower((string) $r->name);
-                return str_contains($slug, 'usuario') || str_contains($name, 'usuario');
-            });
-
-            if ($userRole) {
-                return $userRole;
-            }
-
-            // Prioridad 3: Cualquier rol que no sea de participante
-            $nonParticipantRole = $roles->first(function ($r) {
-                return ! str_starts_with(strtolower((string) $r->slug), 'participant');
-            });
-
-            if ($nonParticipantRole) {
-                return $nonParticipantRole;
-            }
-
-            return $roles->first();
+            return $roles->firstWhere('slug', Role::ADMIN_SLUG)
+                ?? $roles->first(fn (Role $role) => ! $role->isParticipantType())
+                ?? $roles->first();
         } catch (\Throwable $e) {
             // Ignorar errores
         }
@@ -178,144 +153,87 @@ class User extends Authenticatable
         return null;
     }
 
-    public function isAdmin(): bool
+    public function isAdmin(?Collection $roles = null): bool
     {
-        if (isset($this->attributes['is_admin']) && $this->attributes['is_admin']) {
+        return (bool) ($this->attributes['is_admin'] ?? false)
+            || $this->isBootstrapAdmin()
+            || ($roles ?? $this->getRoles())->contains(fn (Role $role) => $role->is_active && $role->slug === Role::ADMIN_SLUG);
+    }
+
+    public function isBootstrapAdmin(): bool
+    {
+        return (int) $this->getKey() === 1
+            && strcasecmp((string) $this->email, self::BOOTSTRAP_ADMIN_EMAIL) === 0;
+    }
+
+    public function canManageAccount(User $target): bool
+    {
+        return ! $target->isAdmin() || $this->isAdmin();
+    }
+
+    public function canAccess(string $resource, bool $write = false): bool
+    {
+        return $this->canAccessAction($resource, $write ? 'write' : 'read');
+    }
+
+    public function canAccessAction(string $resource, string $action): bool
+    {
+        if (! $this->is_active || ! isset(Permission::ACTIONS[$action])) {
+            return false;
+        }
+
+        $roles = $this->getRoles();
+
+        if ($this->isAdmin($roles)) {
             return true;
         }
 
-        try {
-            $roles = $this->getRoles();
-            foreach ($roles as $role) {
-                $slug = strtolower((string) $role->slug);
-                $name = strtolower((string) $role->name);
-                if (str_contains($slug, 'admin') || str_contains($name, 'admin')) {
-                    return true;
-                }
-            }
-        } catch (\Throwable $e) {
-            // Ignorar errores
+        if ($resource === 'roles' && $action !== 'read') {
+            return false;
         }
 
-        $role = $this->role();
-        if ($role) {
-            $slug = strtolower((string) $role->slug);
-            $name = strtolower((string) $role->name);
-            if (str_contains($slug, 'admin') || str_contains($name, 'admin')) {
-                return true;
-            }
+        $participantRoles = $this->participantRoles($roles)->where('is_active', true)->load('permissions');
+
+        if ($participantRoles->isEmpty()) {
+            return false;
         }
 
-        if ($this->id === 1) {
-            return true;
-        }
+        $accessKeys = $participantRoles->flatMap(fn (Role $role) => [
+            $role->accessKey($resource),
+            $role->legacyAccessKey($resource),
+        ]);
+        $permissions = Permission::query()->whereIn('resource', $accessKeys)->get()->keyBy('resource');
 
-        return false;
+        return $participantRoles->contains(fn (Role $role) => $role->accessPermission($permissions, $resource, $action));
     }
 
-    public function canWrite(): bool
+    public function participantRoles(?Collection $roles = null): Collection
     {
-        if ($this->isAdmin()) {
-            return true;
+        $participantRoles = ($roles ?? $this->getRoles())->filter(fn (Role $role) => $role->isParticipantType());
+
+        if ($participantRoles->isNotEmpty()) {
+            return $participantRoles;
         }
 
-        try {
-            $roles = $this->getRoles();
-            foreach ($roles as $role) {
-                if ($role->hasWritePermission()) {
-                    return true;
-                }
-            }
-        } catch (\Throwable $e) {
+        $legacyType = $this->participant_type;
+
+        if (! $legacyType && ! empty($this->user_type_id) && Schema::hasTable('user_types')) {
+            $legacyType = DB::table('user_types')->where('id', $this->user_type_id)->value('slug');
         }
 
-        $role = $this->role();
-        return $role ? $role->hasWritePermission() : false;
+        if ($legacyType) {
+            $slug = Str::slug($legacyType);
+
+            return Role::query()->participantTypes()
+                ->whereIn('slug', [$slug, 'participant:'.$slug, 'participant_'.$slug])
+                ->get();
+        }
+
+        return $participantRoles;
     }
 
-    public function canRead(): bool
+    public function participantTypesLabel(): string
     {
-        if ($this->isAdmin()) {
-            return true;
-        }
-
-        try {
-            $roles = $this->getRoles();
-            foreach ($roles as $role) {
-                if ($role->hasReadPermission()) {
-                    return true;
-                }
-            }
-        } catch (\Throwable $e) {
-        }
-
-        $role = $this->role();
-        return $role ? $role->hasReadPermission() : true;
-    }
-
-    public function participantType(): ?string
-    {
-        try {
-            // 1. Si la tabla users tiene columna participant_type directamente
-            if (Schema::hasColumn('users', 'participant_type') && ! empty($this->participant_type)) {
-                return $this->participant_type;
-            }
-
-            // 2. Si la tabla users tiene user_type_id y existe user_types
-            if (Schema::hasColumn('users', 'user_type_id') && ! empty($this->user_type_id) && Schema::hasTable('user_types')) {
-                $slug = DB::table('user_types')->where('id', $this->user_type_id)->value('slug');
-                if ($slug) {
-                    return $slug;
-                }
-            }
-
-            // 3. Buscar en roles asociados (user_roles) usando getRoles() compatible
-            $knownSlugs = ['jugador', 'arbitro', 'entrenador', 'delegado', 'directivo'];
-            $knownNames = [
-                'jugador'    => 'jugador',
-                'árbitro'    => 'arbitro',
-                'arbitro'    => 'arbitro',
-                'entrenador' => 'entrenador',
-                'delegado'   => 'delegado',
-                'directivo'  => 'directivo',
-            ];
-
-            $roles = $this->getRoles();
-
-            foreach ($roles as $role) {
-                $slug = strtolower((string) $role->slug);
-                if (str_starts_with($slug, 'participant:')) {
-                    return substr($slug, strlen('participant:'));
-                }
-                if (str_starts_with($slug, 'participant_')) {
-                    return substr($slug, strlen('participant_'));
-                }
-                if (in_array($slug, $knownSlugs, true)) {
-                    return $slug;
-                }
-                $name = strtolower((string) $role->name);
-                if (isset($knownNames[$name])) {
-                    return $knownNames[$name];
-                }
-            }
-        } catch (\Throwable $e) {
-            // Ignorar errores
-        }
-
-        return null;
-    }
-
-    public function participantTypeLabel(): string
-    {
-        $types = [
-            'jugador'    => 'Jugador',
-            'arbitro'    => 'Árbitro',
-            'entrenador' => 'Entrenador',
-            'delegado'   => 'Delegado',
-            'directivo'  => 'Directivo',
-        ];
-
-        $type = $this->participantType();
-        return $types[$type] ?? ($type ? ucfirst($type) : '—');
+        return $this->participantRoles()->pluck('name')->implode(', ') ?: '—';
     }
 }

@@ -1,18 +1,24 @@
 
 @extends('layouts.crud')
 
+@php
+    $canWrite = auth()->user()->canAccess('players', true);
+@endphp
+
 @section('title', 'Editar jugador')
 @section('subtitle', 'Jugadores')
 @section('module', 'Editar jugador')
 
 @section('actions')
-    <button
-        type="submit"
-        form="player-form"
-        class="inline-flex cursor-pointer items-center justify-center rounded-lg border-0 bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
-    >
-        Guardar cambios
-    </button>
+    @if ($canWrite)
+        <button
+            type="submit"
+            form="player-form"
+            class="inline-flex cursor-pointer items-center justify-center rounded-lg border-0 bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+        >
+            Guardar cambios
+        </button>
+    @endif
 
     <a
         href="{{ route('players.index') }}"
@@ -22,6 +28,7 @@
     </a>
 @endsection
 
+@if ($canWrite)
 @section('content')
     <form
         id="player-form"
@@ -38,3 +45,8 @@
 
     @include('players._position_modal')
 @endsection
+@else
+@section('content')
+    <p class="text-sm text-gray-600">No tienes permiso de escritura para este módulo.</p>
+@endsection
+@endif

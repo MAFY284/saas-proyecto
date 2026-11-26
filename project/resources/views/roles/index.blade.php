@@ -3,6 +3,10 @@
 @section('title', 'Roles y Permisos')
 @section('module', 'Roles y Permisos')
 
+@php
+    $canWrite = auth()->user()->canAccess('roles', true);
+@endphp
+
 @section('header-search')
     <form method="GET" action="{{ route('roles.index') }}" role="search">
         <label for="crud-search" class="sr-only">Buscar roles</label>
@@ -30,6 +34,7 @@
     </form>
 @endsection
 
+@if ($canWrite)
 @section('actions')
     <a
         href="{{ route('roles.create') }}"
@@ -80,79 +85,67 @@
     </div>
 @endsection
 
+@endif
+
 @section('header-right')
     @include('pagination.header', ['paginator' => $roles])
 @endsection
 
 @section('content')
-    <form id="bulk-form" method="POST">
-        @csrf
-    </form>
+    @if ($canWrite)
+        <form id="bulk-form" method="POST">
+            @csrf
+        </form>
+    @endif
 
     <div class="overflow-x-auto">
         <table class="min-w-full border-collapse text-left text-sm">
             <thead>
                 <tr class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
-                    <th class="w-10 px-3 py-3">
-                        <input
-                            id="select-all"
-                            type="checkbox"
-                            class="rounded border-gray-300"
-                            aria-label="Seleccionar todos"
-                        >
-                    </th>
-                    <th class="px-3 py-3">Rol</th>
+                    @if ($canWrite)
+                        <th class="w-10 px-3 py-3">
+                            <input
+                                id="select-all"
+                                type="checkbox"
+                                class="rounded border-gray-300"
+                                aria-label="Seleccionar todos"
+                            >
+                        </th>
+                    @endif
+                    <th class="px-3 py-3">Tipo de participante</th>
                     <th class="px-3 py-3">Descripción</th>
-                    <th class="px-3 py-3">Tipo de Permisos</th>
                     <th class="px-3 py-3">Estado</th>
                     <th class="px-3 py-3">Fecha de creación</th>
-                    <th class="px-3 py-3 text-right">Acciones</th>
+                    @if ($canWrite)
+                        <th class="px-3 py-3 text-right">Acciones</th>
+                    @endif
                 </tr>
             </thead>
             <tbody>
                 @forelse ($roles as $role)
-                    @php
-                        $hasRead = $role->hasReadPermission();
-                        $hasWrite = $role->hasWritePermission();
-                    @endphp
                     <tr
-                        data-edit-url="{{ route('roles.edit', $role) }}"
-                        class="role-row cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                        @if ($canWrite)
+                            data-edit-url="{{ route('roles.edit', $role) }}"
+                        @endif
+                        class="role-row border-b border-gray-100 {{ $canWrite ? 'cursor-pointer hover:bg-gray-50' : '' }}"
                     >
-                        <td class="px-3 py-3" onclick="event.stopPropagation()">
-                            <input
-                                form="bulk-form"
-                                type="checkbox"
-                                name="ids[]"
-                                value="{{ $role->id }}"
-                                class="row-check rounded border-gray-300"
-                            >
-                        </td>
+                        @if ($canWrite)
+                            <td class="px-3 py-3" onclick="event.stopPropagation()">
+                                <input
+                                    form="bulk-form"
+                                    type="checkbox"
+                                    name="ids[]"
+                                    value="{{ $role->id }}"
+                                    class="row-check rounded border-gray-300"
+                                >
+                            </td>
+                        @endif
                         <td class="px-3 py-3 font-medium text-gray-800">
                             <div>{{ $role->name }}</div>
                             <div class="text-xs text-gray-400 font-mono">{{ $role->slug }}</div>
                         </td>
                         <td class="px-3 py-3 text-gray-600 max-w-xs truncate">
                             {{ $role->description ?: '—' }}
-                        </td>
-                        <td class="px-3 py-3">
-                            <div class="flex flex-wrap items-center gap-1.5">
-                                @if ($hasRead)
-                                    <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 border border-blue-200">
-                                        Lectura
-                                    </span>
-                                @endif
-                                @if ($hasWrite)
-                                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 border border-emerald-200">
-                                        Escritura
-                                    </span>
-                                @endif
-                                @if (!$hasRead && !$hasWrite)
-                                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500">
-                                        Sin permisos
-                                    </span>
-                                @endif
-                            </div>
                         </td>
                         <td class="px-3 py-3">
                             @if ($role->is_active)
@@ -168,18 +161,20 @@
                         <td class="px-3 py-3 text-gray-600">
                             {{ $role->created_at?->format('d/m/Y H:i') ?: '—' }}
                         </td>
-                        <td class="px-3 py-3 text-right" onclick="event.stopPropagation()">
-                            <a
-                                href="{{ route('roles.edit', $role) }}"
-                                class="text-sm font-semibold text-blue-600 hover:text-blue-800 mr-2"
-                            >
-                                Editar
-                            </a>
-                        </td>
+                        @if ($canWrite)
+                            <td class="px-3 py-3 text-right" onclick="event.stopPropagation()">
+                                <a
+                                    href="{{ route('roles.edit', $role) }}"
+                                    class="text-sm font-semibold text-blue-600 hover:text-blue-800 mr-2"
+                                >
+                                    Editar
+                                </a>
+                            </td>
+                        @endif
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-3 py-8 text-center text-gray-500">
+                        <td colspan="{{ $canWrite ? 6 : 4 }}" class="px-3 py-8 text-center text-gray-500">
                             No hay roles registrados.
                         </td>
                     </tr>
@@ -189,6 +184,7 @@
     </div>
 @endsection
 
+@if ($canWrite)
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -251,7 +247,7 @@
                 });
             }
 
-            document.querySelectorAll('.role-row').forEach(row => {
+            document.querySelectorAll('.role-row[data-edit-url]').forEach(row => {
                 row.addEventListener('click', function (e) {
                     if (e.target.closest('input, button, a')) return;
                     const url = row.getAttribute('data-edit-url');
@@ -261,4 +257,5 @@
         });
     </script>
 @endpush
+@endif
 

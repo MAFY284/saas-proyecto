@@ -3,6 +3,12 @@
 @section('title', 'Jugadores')
 @section('module', 'Catálogo de jugadores')
 
+@php
+    $canWrite = auth()->user()->canAccess('players', true);
+    $canCreate = auth()->user()->canAccessAction('players', 'create');
+    $canDelete = auth()->user()->canAccessAction('players', 'delete');
+@endphp
+
 @section('header-search')
     <form method="GET" action="{{ route('players.index') }}" role="search">
         <label for="crud-search" class="sr-only">Buscar jugadores</label>
@@ -32,6 +38,7 @@
     </form>
 @endsection
 
+@if ($canCreate)
 @section('actions')
     <a
         href="{{ route('players.create') }}"
@@ -42,6 +49,9 @@
 @endsection
 
 {{-- Misma ubicación y estilo del menú Acciones del CRUD de Usuarios. --}}
+@endif
+
+@if ($canDelete)
 @section('header-center')
     <div id="bulk-menu" class="relative hidden" hidden>
         <button
@@ -68,6 +78,7 @@
         </div>
     </div>
 @endsection
+@endif
 
 @section('header-right')
     @include('pagination.header', ['paginator' => $players])
@@ -75,10 +86,12 @@
 
 @section('content')
     {{-- Selección múltiple: misma estructura que en Usuarios. --}}
-    <form id="bulk-form" method="POST" action="{{ route('players.destroy-selected') }}">
-        @csrf
-        @method('DELETE')
-    </form>
+    @if ($canDelete)
+        <form id="bulk-form" method="POST" action="{{ route('players.destroy-selected') }}">
+            @csrf
+            @method('DELETE')
+        </form>
+    @endif
     @if (session('success'))
         <div role="status" class="mx-3 mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
             {{ session('success') }}
@@ -95,9 +108,11 @@
         <table class="min-w-full border-collapse text-left text-sm">
             <thead>
                 <tr class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
-                    <th class="w-10 px-3 py-3">
-                        <input id="select-all" type="checkbox" class="rounded border-gray-300" aria-label="Seleccionar todos">
-                    </th>
+                    @if ($canDelete)
+                        <th class="w-10 px-3 py-3">
+                            <input id="select-all" type="checkbox" class="rounded border-gray-300" aria-label="Seleccionar todos">
+                        </th>
+                    @endif
                     <th class="w-12 px-3 py-3"></th>
                     <th class="px-3 py-3">Nombre</th>
                     <th class="px-3 py-3">Equipo</th>
@@ -109,19 +124,23 @@
             <tbody>
                 @forelse ($players as $player)
                     <tr
-                        data-edit-url="{{ route('players.edit', $player->id) }}"
-                        class="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                        @if ($canWrite)
+                            data-edit-url="{{ route('players.edit', $player->id) }}"
+                        @endif
+                        class="border-b border-gray-100 {{ $canWrite ? 'cursor-pointer hover:bg-gray-50' : '' }}"
                     >
-                        <td class="px-3 py-3" onclick="event.stopPropagation()">
-                            <input
-                                form="bulk-form"
-                                type="checkbox"
-                                name="ids[]"
-                                value="{{ $player->id }}"
-                                class="row-check rounded border-gray-300"
-                                aria-label="Seleccionar a {{ $player->fullName() }}"
-                            >
-                        </td>
+                        @if ($canDelete)
+                            <td class="px-3 py-3" onclick="event.stopPropagation()">
+                                <input
+                                    form="bulk-form"
+                                    type="checkbox"
+                                    name="ids[]"
+                                    value="{{ $player->id }}"
+                                    class="row-check rounded border-gray-300"
+                                    aria-label="Seleccionar a {{ $player->fullName() }}"
+                                >
+                            </td>
+                        @endif
                         <td class="px-3 py-3">
                                 <div
                                     class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-xs font-semibold text-white"
@@ -149,9 +168,13 @@
                                 </div>
                         </td>
                         <td class="px-3 py-3 font-medium text-gray-800">
-                            <a href="{{ route('players.edit', $player->id) }}" class="text-gray-800 no-underline hover:text-blue-700 hover:underline focus:underline" onclick="event.stopPropagation()">
+                            @if ($canWrite)
+                                <a href="{{ route('players.edit', $player->id) }}" class="text-gray-800 no-underline hover:text-blue-700 hover:underline focus:underline" onclick="event.stopPropagation()">
+                                    {{ $player->fullName() }}
+                                </a>
+                            @else
                                 {{ $player->fullName() }}
-                            </a>
+                            @endif
                         </td>
                         <td class="px-3 py-3 text-gray-600">
                             {{ $player->teams->pluck('name')->implode(', ') ?: 'Sin equipo' }}
@@ -173,7 +196,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-3 py-8 text-center text-gray-500">
+                        <td colspan="{{ $canDelete ? 6 : 5 }}" class="px-3 py-8 text-center text-gray-500">
                             No hay jugadores registrados.
                         </td>
                     </tr>
@@ -182,6 +205,7 @@
         </table>
     </div>
 
+    @if ($canDelete)
     {{-- Confirmación propia de la aplicación (reemplaza window.confirm). --}}
     <dialog
         id="confirm-delete-player"
@@ -224,8 +248,10 @@
     <style>
         #confirm-delete-player::backdrop { background: rgba(15, 23, 42, .55); }
     </style>
+    @endif
 @endsection
 
+@if ($canWrite || $canDelete)
 {{-- Reutiliza exactamente el controlador de selección/menú del CRUD de Usuarios. --}}
 @include('layouts.partials.crud-bulk-scripts')
 
@@ -299,3 +325,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+@endif

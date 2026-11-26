@@ -57,6 +57,16 @@ cd installation
 docker compose up --build
 ```
 
+En una base sin usuarios, el arranque local de Docker crea el administrador de pruebas `admin@admin.com` con contraseña `password`. El seeder se limita a los entornos `local` y `testing`.
+
+Si el contenedor local ya está corriendo, puedes preparar la misma cuenta sin reiniciarlo:
+
+```bash
+docker exec -w /var/www/html laravel-web php artisan admin:demo
+```
+
+Si el administrador ya existe, conserva su contraseña.
+
 ### `documentation/`
 
 - `Propuesta_Arquitectura_SaaS.docx` — propuesta de arquitectura con dos máquinas virtuales (producción y pruebas).

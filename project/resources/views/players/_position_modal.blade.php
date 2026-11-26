@@ -1,3 +1,9 @@
+@php
+    $canCreatePosition = auth()->user()->canAccessAction('players', 'create');
+    $canEditPosition = auth()->user()->canAccess('players', true);
+    $canDeletePosition = auth()->user()->canAccessAction('players', 'delete');
+@endphp
+
 <dialog
     id="position-modal"
     aria-labelledby="position-modal-title"
@@ -14,28 +20,29 @@
     </div>
 
     <div class="px-6 py-5">
-        <label for="new-position-name" class="mb-2 block text-sm font-semibold text-gray-700">
-            Nombre de la posición
-        </label>
-        <input
-            type="text"
-            id="new-position-name"
-            maxlength="255"
-            placeholder="Ej. Delantero centro"
-            class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-800 focus:border-blue-600 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-blue-600"
-        >
-        <p id="position-error" role="alert" class="mt-2 hidden text-xs text-red-700"></p>
-
-        <div class="mt-4 flex justify-end">
-            <button
-                type="button"
-                id="save-position"
-                disabled
-                class="cursor-pointer rounded-lg border-0 bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+        <div id="position-editor" @if (! $canCreatePosition) hidden @endif>
+            <label for="new-position-name" class="mb-2 block text-sm font-semibold text-gray-700">
+                Nombre de la posición
+            </label>
+            <input
+                type="text"
+                id="new-position-name"
+                maxlength="255"
+                placeholder="Ej. Delantero centro"
+                class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-800 focus:border-blue-600 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-blue-600"
             >
-                Guardar posición
-            </button>
+            <div class="mt-4 flex justify-end">
+                <button
+                    type="button"
+                    id="save-position"
+                    disabled
+                    class="cursor-pointer rounded-lg border-0 bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    Guardar posición
+                </button>
+            </div>
         </div>
+        <p id="position-error" role="alert" class="mt-2 hidden text-xs text-red-700"></p>
 
         <div class="mt-6 border-t border-gray-200 pt-5">
             <h3 class="mb-3 text-sm font-semibold text-gray-800">
@@ -51,21 +58,25 @@
                             {{ $position->name }}
                         </span>
                         <div class="flex items-center gap-3">
-                            <button
-                                type="button"
-                                class="edit-position-btn text-sm font-medium text-blue-600 hover:text-blue-800"
-                                data-position-id="{{ $position->id }}"
-                                data-position-name="{{ $position->name }}"
-                            >
-                                Editar
-                            </button>
-                            <button
-                                type="button"
-                                class="delete-position-btn text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
-                                data-position-id="{{ $position->id }}"
-                            >
-                                Eliminar
-                            </button>
+                            @if ($canEditPosition)
+                                <button
+                                    type="button"
+                                    class="edit-position-btn text-sm font-medium text-blue-600 hover:text-blue-800"
+                                    data-position-id="{{ $position->id }}"
+                                    data-position-name="{{ $position->name }}"
+                                >
+                                    Editar
+                                </button>
+                            @endif
+                            @if ($canDeletePosition)
+                                <button
+                                    type="button"
+                                    class="delete-position-btn text-sm font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+                                    data-position-id="{{ $position->id }}"
+                                >
+                                    Eliminar
+                                </button>
+                            @endif
                         </div>
                     </div>
                 @empty
@@ -108,9 +119,10 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    const storeUrl = @json(route('positions.store'));
-    const updateUrl = @json(route('positions.update', ['id' => '__ID__']));
-    const deleteUrl = @json(route('positions.destroy', ['id' => '__ID__']));
+    const editor = document.getElementById('position-editor');
+    const storeUrl = @js($canCreatePosition ? route('positions.store') : null);
+    const updateUrl = @js($canEditPosition ? route('positions.update', ['id' => '__ID__']) : null);
+    const deleteUrl = @js($canDeletePosition ? route('positions.destroy', ['id' => '__ID__']) : null);
     const csrfToken = @json(csrf_token());
 
     let saving = false;
@@ -127,6 +139,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function resetEditor() {
         editingId = null;
+        editor.hidden = !storeUrl;
         nameInput.value = '';
         saveButton.textContent = 'Guardar posición';
         showError('');
@@ -176,7 +189,8 @@ document.addEventListener('DOMContentLoaded', function () {
         deleteButton.textContent = 'Eliminar';
         deleteButton.dataset.positionId = String(position.id);
 
-        actions.append(editButton, deleteButton);
+        if (updateUrl) actions.append(editButton);
+        if (deleteUrl) actions.append(deleteButton);
         row.append(label, actions);
         positionsList.appendChild(row);
     }
@@ -184,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function () {
     openButton.addEventListener('click', function () {
         resetEditor();
         modal.showModal();
-        nameInput.focus();
+        if (!editor.hidden) nameInput.focus();
     });
 
     closeButton.addEventListener('click', function () {
@@ -205,9 +219,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Elegir una posición existente para editarla.
     positionsList.addEventListener('click', function (event) {
         const button = event.target.closest('.edit-position-btn');
-        if (!button || saving) return;
+        if (!button || !updateUrl || saving) return;
 
         editingId = button.dataset.positionId;
+        editor.hidden = false;
         nameInput.value = button.dataset.positionName;
         saveButton.textContent = 'Guardar cambios';
         showError('');
@@ -226,6 +241,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const isEditing = editingId !== null;
+        if (isEditing ? !updateUrl : !storeUrl) return;
         saving = true;
         updateSaveButton();
         showError('');
@@ -300,7 +316,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Eliminar solo si Laravel confirma que no tiene jugadores asociados.
     positionsList.addEventListener('click', async function (event) {
         const button = event.target.closest('.delete-position-btn');
-        if (!button || saving) return;
+        if (!button || !deleteUrl || saving) return;
 
         const id = button.dataset.positionId;
         const row = button.closest('[data-position-row]');
