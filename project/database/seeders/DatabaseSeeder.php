@@ -2,10 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use App\Models\Language;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -27,17 +26,7 @@ class DatabaseSeeder extends Seeder
         $spanishLanguage = Language::where('iso_code', 'es')->first();
 
         // 2. Crear Usuario Principal Administrador
-        User::query()->firstOrCreate(
-            ['email' => 'admin@admin.com'],
-            [
-                'language_id' => $spanishLanguage->id,
-                'name' => 'Admin Sistema',
-                'first_name' => 'Admin',
-                'last_name' => 'Sistema',
-                'password' => bcrypt('password'), // La contraseña será: password
-                'is_active' => 1,
-            ]
-        );
+        $this->call(DemoAdminSeeder::class);
 
         // 3. Crear 10 Usuarios Ficticios usando tu UserFactory
         User::factory(10)->create([

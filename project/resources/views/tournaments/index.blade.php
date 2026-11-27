@@ -1,5 +1,11 @@
 @extends('layouts.crud')
 
+@php
+    $canWrite = auth()->user()->canAccess('tournaments', true);
+    $canCreate = auth()->user()->canAccessAction('tournaments', 'create');
+    $canDelete = auth()->user()->canAccessAction('tournaments', 'delete');
+@endphp
+
 @section('title', 'Torneos')
 @section('module', 'Torneos')
 
@@ -30,6 +36,7 @@
     </form>
 @endsection
 
+@if ($canCreate)
 @section('actions')
     <a
         href="{{ route('tournaments.create') }}"
@@ -39,6 +46,9 @@
     </a>
 @endsection
 
+@endif
+
+@if ($canDelete)
 @section('header-center')
     <div id="bulk-menu" class="relative hidden" hidden>
         <button
@@ -65,29 +75,34 @@
         </div>
     </div>
 @endsection
+@endif
 
 @section('header-right')
     @include('pagination.header', ['paginator' => $tournaments])
 @endsection
 
 @section('content')
-    <form id="bulk-form" method="POST" action="{{ route('tournaments.destroy-selected') }}">
-        @csrf
-        @method('DELETE')
-    </form>
+    @if ($canDelete)
+        <form id="bulk-form" method="POST" action="{{ route('tournaments.destroy-selected') }}">
+            @csrf
+            @method('DELETE')
+        </form>
+    @endif
 
     <div class="overflow-x-auto">
         <table class="min-w-full border-collapse text-left text-sm">
             <thead>
                 <tr class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
-                    <th class="w-10 px-3 py-3">
-                        <input
-                            id="select-all"
-                            type="checkbox"
-                            class="rounded border-gray-300"
-                            aria-label="Seleccionar todos"
-                        >
-                    </th>
+                    @if ($canDelete)
+                        <th class="w-10 px-3 py-3">
+                            <input
+                                id="select-all"
+                                type="checkbox"
+                                class="rounded border-gray-300"
+                                aria-label="Seleccionar todos"
+                            >
+                        </th>
+                    @endif
                     <th class="px-3 py-3">Nombre</th>
                     <th class="px-3 py-3">Liga</th>
                     <th class="px-3 py-3">Temporada</th>
@@ -98,18 +113,22 @@
             <tbody>
                 @forelse ($tournaments as $tournament)
                     <tr
-                        data-edit-url="{{ route('tournaments.edit', $tournament) }}"
-                        class="tournament-row cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                        @if ($canWrite)
+                            data-edit-url="{{ route('tournaments.edit', $tournament) }}"
+                        @endif
+                        class="tournament-row border-b border-gray-100 {{ $canWrite ? 'cursor-pointer hover:bg-gray-50' : '' }}"
                     >
-                        <td class="px-3 py-3" onclick="event.stopPropagation()">
-                            <input
-                                form="bulk-form"
-                                type="checkbox"
-                                name="ids[]"
-                                value="{{ $tournament->id }}"
-                                class="row-check rounded border-gray-300"
-                            >
-                        </td>
+                        @if ($canDelete)
+                            <td class="px-3 py-3" onclick="event.stopPropagation()">
+                                <input
+                                    form="bulk-form"
+                                    type="checkbox"
+                                    name="ids[]"
+                                    value="{{ $tournament->id }}"
+                                    class="row-check rounded border-gray-300"
+                                >
+                            </td>
+                        @endif
                         <td class="px-3 py-3 font-medium text-gray-800">
                             {{ $tournament->name }}
                         </td>
@@ -128,13 +147,14 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-3 py-8 text-center text-gray-500">No hay torneos registrados.</td>
+                        <td colspan="{{ $canDelete ? 6 : 5 }}" class="px-3 py-8 text-center text-gray-500">No hay torneos registrados.</td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 
+    @if ($canDelete)
     {{-- Confirmación propia de la aplicación --}}
     <dialog
         id="confirm-delete-tournament"
@@ -177,8 +197,10 @@
     <style>
         #confirm-delete-tournament::backdrop { background: rgba(15, 23, 42, .55); }
     </style>
+    @endif
 @endsection
 
+@if ($canWrite || $canDelete)
 @include('layouts.partials.crud-bulk-scripts')
 
 @push('scripts')
@@ -275,3 +297,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+@endif

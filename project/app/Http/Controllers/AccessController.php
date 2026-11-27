@@ -3,86 +3,102 @@
 namespace App\Http\Controllers;
 
 use App\Models\Permission;
+use App\Models\Role;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AccessController extends Controller
 {
     public function index()
     {
-        $participantTypes = $this->participantTypes();
-        $prefix = 'access:';
-
         return view('access.index', [
-            'participantTypes' => $participantTypes,
+            'participantTypes' => Role::query()->participantTypes()->with('permissions')->orderBy('name')->get(),
             'accessPermissions' => Permission::query()
-                ->where('resource', 'like', $prefix.'%')
+                ->where('resource', 'like', 'access:%')
                 ->get()
                 ->keyBy('resource'),
             'resources' => Permission::RESOURCES,
             'resourceTables' => Permission::RESOURCE_TABLES,
+            'actions' => Permission::ACTIONS,
         ]);
     }
 
-    public function update(Request $request, string $participantType)
+    public function update(Request $request, ?string $participantType = null)
     {
-        abort_unless(array_key_exists($participantType, $this->participantTypes()), 404);
+        if ($participantType !== null) {
+            return $this->updateRole($request, $participantType);
+        }
+
+        $input = $request->validate(['matrix' => ['required', 'json']]);
+        $request->merge(['permissions' => json_decode($input['matrix'], true)]);
+        $data = $request->validate([
+            'permissions' => ['present', 'array'],
+            'permissions.*' => ['required', 'array:'.implode(',', array_keys(Permission::RESOURCES))],
+            'permissions.*.*' => [
+                'required',
+                'array:'.implode(',', array_keys(Permission::ACTIONS)),
+                'required_array_keys:'.implode(',', array_keys(Permission::ACTIONS)),
+            ],
+            'permissions.*.*.*' => ['required', 'boolean'],
+        ]);
+
+        DB::transaction(function () use ($data) {
+            $roles = Role::query()->participantTypes()->whereIn('id', array_keys($data['permissions']))
+                ->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+
+            foreach ($data['permissions'] as $id => $resources) {
+                $role = $roles->get($id);
+
+                if (! $role) {
+                    throw ValidationException::withMessages(['matrix' => 'Un tipo de participante ya no está disponible.']);
+                }
+
+                foreach ($resources as $resource => $actions) {
+                    $this->savePermissions($role, $resource, $actions);
+                }
+            }
+        });
+
+        return redirect()->route('access.index')->with('status', 'Accesos guardados.');
+    }
+
+    private function updateRole(Request $request, string $participantType)
+    {
+        $roles = Role::query()->participantTypes();
+        $role = preg_match('/^role-(\d+)$/', $participantType, $matches)
+            ? $roles->findOrFail($matches[1])
+            : $roles->whereIn('slug', [$participantType, 'participant:'.$participantType, 'participant_'.$participantType])
+                ->firstOrFail();
 
         $data = $request->validate([
             'permissions' => ['nullable', 'array'],
-            'permissions.*.read' => ['nullable', 'boolean'],
-            'permissions.*.write' => ['nullable', 'boolean'],
+            'permissions.*' => ['array:'.implode(',', array_keys(Permission::ACTIONS))],
+            'permissions.*.*' => ['required', 'boolean'],
         ]);
 
         $submitted = $data['permissions'] ?? [];
 
-        foreach (Permission::RESOURCES as $key => $label) {
-            $read = ! empty($submitted[$key]['read']);
-            $write = ! empty($submitted[$key]['write']);
-
-            Permission::updateOrCreate(
-                ['resource' => $this->permissionResource($participantType, $key)],
-                [
-                    'can_read' => $read,
-                    'can_write' => $write,
-                    'can_create' => $write,
-                    'can_delete' => $write,
-                ]
-            );
-        }
-
-        $role = \App\Models\Role::query()
-            ->where('slug', 'participant:'.$participantType)
-            ->orWhere('slug', $participantType)
-            ->first();
-
-        if ($role) {
-            $permissionIds = Permission::query()
-                ->where('resource', 'like', "access:{$participantType}:%")
-                ->pluck('id')
-                ->all();
-            $role->permissions()->sync($permissionIds);
-        }
+        DB::transaction(function () use ($role, $submitted) {
+            foreach (array_keys(Permission::RESOURCES) as $key) {
+                $this->savePermissions($role, $key, $submitted[$key] ?? []);
+            }
+        });
 
         return redirect()->route('access.index')->with(
             'status',
-            'Accesos actualizados para '.$this->participantTypes()[$participantType].'.'
+            'Accesos actualizados para '.$role->name.'.'
         );
     }
 
-    /** @return array<string, string> */
-    private function participantTypes(): array
+    private function savePermissions(Role $role, string $resource, array $actions): void
     {
-        return [
-            'jugador' => 'Jugador',
-            'arbitro' => 'Árbitro',
-            'entrenador' => 'Entrenador',
-            'delegado' => 'Delegado',
-            'directivo' => 'Directivo',
-        ];
-    }
+        $flags = [];
 
-    private function permissionResource(string $participantType, string $resource): string
-    {
-        return "access:{$participantType}:{$resource}";
+        foreach (array_keys(Permission::ACTIONS) as $action) {
+            $flags['can_'.$action] = (bool) ($actions[$action] ?? false);
+        }
+
+        Permission::query()->updateOrCreate(['resource' => $role->accessKey($resource)], $flags);
     }
 }

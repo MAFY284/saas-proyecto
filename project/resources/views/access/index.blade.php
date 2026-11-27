@@ -3,6 +3,18 @@
 @section('title', 'Control de acceso')
 @section('module', 'Control de acceso')
 
+@php
+    $canWrite = auth()->user()->canAccess('roles', true);
+@endphp
+
+@if ($canWrite && $participantTypes->isNotEmpty())
+    @section('actions')
+        <button type="submit" form="access-form" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+            Guardar accesos
+        </button>
+    @endsection
+@endif
+
 @section('content')
     <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -33,26 +45,35 @@
         </div>
     @endif
 
-    
+
+
+    @if ($errors->any())
+        <p role="alert" class="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ $errors->first() }}</p>
+    @endif
+
+    @if ($canWrite && $participantTypes->isNotEmpty())
+        <form id="access-form" method="POST" action="{{ route('access.update') }}">
+            @csrf
+            @method('PUT')
+        </form>
+    @endif
 
     <div class="space-y-4">
-        @foreach ($participantTypes as $type => $label)
+        @forelse ($participantTypes as $type)
             <details
-                id="participant-{{ $type }}"
+                id="participant-{{ $type->id }}"
                 class="participant-details group rounded-xl border border-gray-200 bg-white shadow-sm transition-all overflow-hidden"
             >
                 <summary class="flex cursor-pointer list-none items-center justify-between p-5 hover:bg-gray-50/80 transition-colors select-none">
                     <div class="flex items-center gap-3">
                         <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-gray-600 group-open:bg-blue-100 group-open:text-blue-700 font-bold text-sm transition-colors duration-150">
-                            {{ mb_substr($label, 0, 1) }}
+                            {{ mb_substr($type->name, 0, 1) }}
                         </span>
                         <div>
                             <div class="flex items-center gap-2">
-                                <h2 class="text-base font-semibold text-gray-800">{{ $label }}</h2>
-                                @if ($type === 'jugador')
-                                @endif
+                                <h2 class="text-base font-semibold text-gray-800">{{ $type->name }}{{ $type->is_active ? '' : ' (inactivo)' }}</h2>
                             </div>
-                            <p class="text-xs text-gray-500">Permisos del tipo de participante {{ mb_strtolower($label) }}.</p>
+                            <p class="text-xs text-gray-500">Permisos del tipo de participante {{ mb_strtolower($type->name) }}.</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
@@ -71,120 +92,101 @@
                 </summary>
 
                 <div class="border-t border-gray-200 p-5 bg-gray-50/30">
-                    <form method="POST" action="{{ route('access.update', $type) }}" class="overflow-x-auto">
-                        @csrf
-                        @method('PUT')
-
-                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                            <span class="text-xs text-gray-500">
-                                Mapeo de accesos para <strong>{{ $label }}</strong> vinculado a los módulos del sistema y columnas en base de datos.
-                            </span>
-                            <button
-                                type="submit"
-                                class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm"
-                            >
-                                Guardar accesos para {{ $label }}
-                            </button>
-                        </div>
-
-                        <div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
-                            <table class="min-w-full text-left text-sm divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr class="text-xs uppercase tracking-wide text-gray-500">
-                                        <th class="px-4 py-3 font-semibold">Módulo</th>
-                                        <th class="px-4 py-3 font-semibold">Columna / Recurso en Base de Datos</th>
-                                        <th class="px-4 py-3 font-semibold">Tabla asociada en BD</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Lectura (can_read)</th>
-                                        <th class="px-4 py-3 text-center font-semibold">Escritura (can_write)</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    @foreach ($resources as $key => $resourceLabel)
-                                        @php
-                                            $permission = $accessPermissions->get("access:{$type}:{$key}");
-                                            $tableName = $resourceTables[$key] ?? $key;
-                                        @endphp
-                                        <tr class="hover:bg-gray-50/60 transition-colors">
-                                            <td class="px-4 py-3 font-medium text-gray-800">
-                                                {{ $resourceLabel }}
-                                            </td>
-                                            <td class="px-4 py-3">
-                                                <div class="flex flex-col">
-                                                    <span class="inline-flex items-center gap-1">
-                                                        <span class="text-xs text-gray-500 font-mono">resource:</span>
-                                                        <code class="rounded bg-blue-50 px-2 py-0.5 text-xs font-mono font-semibold text-blue-700 border border-blue-100">
-                                                            {{ $key }}
-                                                        </code>
-                                                    </span>
-                                                    <span class="text-[11px] text-gray-400 font-mono mt-0.5">
-                                                        access:{{ $type }}:{{ $key }}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td class="px-4 py-3">
-                                                <code class="rounded bg-gray-100 px-2 py-0.5 text-xs font-mono text-gray-700">
-                                                    {{ $tableName }}
-                                                </code>
-                                            </td>
-                                            <td class="px-4 py-3 text-center">
-                                                <input type="hidden" name="permissions[{{ $key }}][read]" value="0">
-                                                <input
-                                                    type="checkbox"
-                                                    name="permissions[{{ $key }}][read]"
-                                                    value="1"
-                                                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                                    @checked($permission?->can_read)
-                                                >
-                                            </td>
-                                            <td class="px-4 py-3 text-center">
-                                                <input type="hidden" name="permissions[{{ $key }}][write]" value="0">
-                                                <input
-                                                    type="checkbox"
-                                                    name="permissions[{{ $key }}][write]"
-                                                    value="1"
-                                                    class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                                    @checked($permission?->can_write)
-                                                >
-                                            </td>
-                                        </tr>
+                    <div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                        <table class="min-w-full text-left text-sm divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr class="text-xs uppercase tracking-wide text-gray-500">
+                                    <th class="px-4 py-3 font-semibold">Módulo</th>
+                                    <th class="px-4 py-3 font-semibold">Columna / Recurso en Base de Datos</th>
+                                    <th class="px-4 py-3 font-semibold">Tabla asociada en BD</th>
+                                    @foreach ($actions as $label)
+                                        <th class="px-4 py-3 text-center font-semibold">{{ $label }}</th>
                                     @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div class="mt-4 flex justify-end">
-                            <button
-                                type="submit"
-                                class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm"
-                            >
-                                Guardar accesos para {{ $label }}
-                            </button>
-                        </div>
-                    </form>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                @foreach ($resources as $key => $resourceLabel)
+                                    @php
+                                        $tableName = $resourceTables[$key] ?? $key;
+                                    @endphp
+                                    <tr class="hover:bg-gray-50/60 transition-colors" data-access-role="{{ $type->id }}" data-access-resource="{{ $key }}">
+                                        <td class="px-4 py-3 font-medium text-gray-800">
+                                            {{ $resourceLabel }}
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <div class="flex flex-col">
+                                                <span class="inline-flex items-center gap-1">
+                                                    <span class="text-xs text-gray-500 font-mono">resource:</span>
+                                                    <code class="rounded bg-blue-50 px-2 py-0.5 text-xs font-mono font-semibold text-blue-700 border border-blue-100">
+                                                        {{ $key }}
+                                                    </code>
+                                                </span>
+                                                <span class="text-[11px] text-gray-400 font-mono mt-0.5">
+                                                    {{ $type->accessKey($key) }}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-3">
+                                            <code class="rounded bg-gray-100 px-2 py-0.5 text-xs font-mono text-gray-700">
+                                                {{ $tableName }}
+                                            </code>
+                                        </td>
+                                        @foreach ($actions as $action => $label)
+                                            @php
+                                                $allowed = $type->accessPermission($accessPermissions, $key, $action);
+                                            @endphp
+                                            <td class="px-4 py-3 text-center">
+                                                @if ($canWrite)
+                                                    <input
+                                                        type="checkbox"
+                                                        form="access-form"
+                                                        data-access-action="{{ $action }}"
+                                                        aria-label="{{ $label }} de {{ $resourceLabel }} para {{ $type->name }}"
+                                                        class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                        @checked($allowed)
+                                                    >
+                                                @else
+                                                    {{ $allowed ? 'Sí' : 'No' }}
+                                                @endif
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </details>
-        @endforeach
+        @empty
+            <p class="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-600">
+                Los tipos que agregues en Roles aparecerán aquí.
+            </p>
+        @endforelse
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const select = document.getElementById('participant-quick-select');
             const expandAll = document.getElementById('expand-all-btn');
             const collapseAll = document.getElementById('collapse-all-btn');
             const allDetails = document.querySelectorAll('.participant-details');
+            const form = document.getElementById('access-form');
 
-            if (select) {
-                select.addEventListener('change', function () {
-                    const targetId = this.value;
-                    if (!targetId) return;
-
-                    const target = document.getElementById(targetId);
-                    if (target) {
-                        target.open = true;
-                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            form?.addEventListener('formdata', (event) => {
+                const matrix = {};
+                for (const row of document.querySelectorAll('[data-access-role]')) {
+                    const inputs = [...row.querySelectorAll('[data-access-action]')];
+                    if (!inputs.some(input => input.checked !== input.defaultChecked)) {
+                        continue;
                     }
-                });
-            }
+
+                    const { accessRole, accessResource } = row.dataset;
+                    matrix[accessRole] ??= {};
+                    matrix[accessRole][accessResource] = Object.fromEntries(
+                        inputs.map(input => [input.dataset.accessAction, input.checked])
+                    );
+                }
+                event.formData.set('matrix', JSON.stringify(matrix));
+            });
 
             if (expandAll) {
                 expandAll.addEventListener('click', function () {

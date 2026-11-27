@@ -185,6 +185,7 @@ class LeagueManagementTest extends TestCase
         );
 
         return User::factory()->create([
+            'email' => User::BOOTSTRAP_ADMIN_EMAIL,
             'language_id' => $language->id,
         ]);
     }

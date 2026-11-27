@@ -25,12 +25,15 @@ Route::middleware('guest')->group(function () {
 
 Route::redirect('/dashboard', '/');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'module.access'])->group(function () {
     Route::post('users/process', [UserController::class, 'process'])->name('users.process');
     Route::delete('users/{user?}', [UserController::class, 'destroy'])->name('users.destroy');
     Route::resource('users', UserController::class)->except(['show', 'destroy']);
     Route::get('access', [AccessController::class, 'index'])->name('access.index');
-    Route::put('access/{participantType}', [AccessController::class, 'update'])->name('access.update');
+    Route::put('access/{participantType?}', [AccessController::class, 'update'])->name('access.update');
+});
+
+Route::middleware('auth')->group(function () {
     Route::resource('teams', TeamController::class)->except(['show']);
     Route::delete('players/bulk', [PlayerController::class, 'destroySelected'])
         ->name('players.destroy-selected');

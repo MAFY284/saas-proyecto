@@ -3,6 +3,12 @@
 @section('title', 'Ligas')
 @section('module', 'Ligas')
 
+@php
+    $canWrite = auth()->user()->canAccess('leagues', true);
+    $canCreate = auth()->user()->canAccessAction('leagues', 'create');
+    $canDelete = auth()->user()->canAccessAction('leagues', 'delete');
+@endphp
+
 @section('header-search')
     <form method="GET" action="{{ route('leagues.index') }}" role="search">
         <label for="crud-search" class="sr-only">Buscar ligas</label>
@@ -30,6 +36,7 @@
     </form>
 @endsection
 
+@if ($canCreate)
 @section('actions')
     <a
         href="{{ route('leagues.create') }}"
@@ -39,6 +46,9 @@
     </a>
 @endsection
 
+@endif
+
+@if ($canDelete)
 @section('header-center')
     <div id="bulk-menu" class="relative hidden" hidden>
         <button
@@ -80,27 +90,33 @@
     </div>
 @endsection
 
+@endif
+
 @section('header-right')
     @include('pagination.header', ['paginator' => $leagues])
 @endsection
 
 @section('content')
-    <form id="bulk-form" method="POST">
-        @csrf
-    </form>
+    @if ($canDelete)
+        <form id="bulk-form" method="POST">
+            @csrf
+        </form>
+    @endif
 
     <div class="overflow-x-auto">
         <table class="min-w-full border-collapse text-left text-sm">
             <thead>
                 <tr class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
-                    <th class="w-10 px-3 py-3">
-                        <input
-                            id="select-all"
-                            type="checkbox"
-                            class="rounded border-gray-300"
-                            aria-label="Seleccionar todos"
-                        >
-                    </th>
+                    @if ($canDelete)
+                        <th class="w-10 px-3 py-3">
+                            <input
+                                id="select-all"
+                                type="checkbox"
+                                class="rounded border-gray-300"
+                                aria-label="Seleccionar todos"
+                            >
+                        </th>
+                    @endif
                     <th class="w-12 px-3 py-3"></th>
                     <th class="px-3 py-3">Nombre</th>
                     <th class="px-3 py-3">Email</th>
@@ -111,18 +127,22 @@
             <tbody>
                 @forelse ($leagues as $league)
                     <tr
-                        data-edit-url="{{ route('leagues.edit', $league) }}"
-                        class="league-row cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                        @if ($canWrite)
+                            data-edit-url="{{ route('leagues.edit', $league) }}"
+                        @endif
+                        class="league-row border-b border-gray-100 {{ $canWrite ? 'cursor-pointer hover:bg-gray-50' : '' }}"
                     >
-                        <td class="px-3 py-3" onclick="event.stopPropagation()">
-                            <input
-                                form="bulk-form"
-                                type="checkbox"
-                                name="ids[]"
-                                value="{{ $league->id }}"
-                                class="row-check rounded border-gray-300"
-                            >
-                        </td>
+                        @if ($canDelete)
+                            <td class="px-3 py-3" onclick="event.stopPropagation()">
+                                <input
+                                    form="bulk-form"
+                                    type="checkbox"
+                                    name="ids[]"
+                                    value="{{ $league->id }}"
+                                    class="row-check rounded border-gray-300"
+                                >
+                            </td>
+                        @endif
                         <td class="px-3 py-3">
                             <x-league-logo :league="$league" size="sm" />
                         </td>
@@ -138,7 +158,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-3 py-8 text-center text-gray-500">No hay ligas registradas.</td>
+                        <td colspan="{{ $canDelete ? 6 : 5 }}" class="px-3 py-8 text-center text-gray-500">No hay ligas registradas.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -146,6 +166,7 @@
     </div>
 @endsection
 
+@if ($canWrite || $canDelete)
 @push('scripts')
     <script>
         const selectAll = document.getElementById('select-all');
@@ -208,7 +229,7 @@
             input.addEventListener('change', refreshActions);
         });
 
-        document.querySelectorAll('.league-row').forEach((row) => {
+        document.querySelectorAll('.league-row[data-edit-url]').forEach((row) => {
             row.addEventListener('click', (event) => {
                 if (event.target.closest('input')) {
                     return;
@@ -221,4 +242,5 @@
         refreshActions();
     </script>
 @endpush
+@endif
 

@@ -3,6 +3,12 @@
 @section('title', 'Sedes')
 @section('module', 'Sedes')
 
+@php
+    $canWrite = auth()->user()->canAccess('fields', true);
+    $canCreate = auth()->user()->canAccessAction('fields', 'create');
+    $canDelete = auth()->user()->canAccessAction('fields', 'delete');
+@endphp
+
 @section('header-search')
     <form method="GET" action="{{ route('fields.index') }}" role="search">
         <label for="crud-search" class="sr-only">Buscar sedes</label>
@@ -16,12 +22,16 @@
     </form>
 @endsection
 
+@if ($canCreate)
 @section('actions')
     <a href="{{ route('fields.create') }}" class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white no-underline hover:bg-blue-700">
         Crear Sede
     </a>
 @endsection
 
+@endif
+
+@if ($canDelete)
 @section('header-center')
     <div id="bulk-menu" class="relative hidden" hidden>
         <button type="button" id="bulk-menu-toggle" class="inline-flex cursor-pointer items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" aria-expanded="false" aria-controls="bulk-menu-panel" aria-haspopup="true">
@@ -34,13 +44,16 @@
         </div>
     </div>
 @endsection
+@endif
 
 @section('header-right')
     @include('pagination.header', ['paginator' => $fields])
 @endsection
 
 @section('content')
-    <form id="bulk-form" method="POST">@csrf</form>
+    @if ($canDelete)
+        <form id="bulk-form" method="POST">@csrf</form>
+    @endif
 
     <form method="GET" action="{{ route('fields.index') }}" class="mb-5 flex flex-wrap items-end gap-3">
         <input type="hidden" name="q" value="{{ $search }}">
@@ -67,7 +80,9 @@
         <table class="min-w-full border-collapse text-left text-sm">
             <thead>
                 <tr class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
-                    <th class="w-10 px-3 py-3"><input id="select-all" type="checkbox" class="rounded border-gray-300"></th>
+                    @if ($canDelete)
+                        <th class="w-10 px-3 py-3"><input id="select-all" type="checkbox" class="rounded border-gray-300"></th>
+                    @endif
                     <th class="px-3 py-3">Nombre</th>
                     <th class="px-3 py-3">Superficie</th>
                     <th class="px-3 py-3">Capacidad</th>
@@ -77,10 +92,17 @@
             </thead>
             <tbody>
                 @forelse ($fields as $field)
-                    <tr data-edit-url="{{ route('fields.edit', $field) }}" class="cursor-pointer border-b border-gray-100 hover:bg-gray-50">
-                        <td class="px-3 py-3" onclick="event.stopPropagation()">
-                            <input form="bulk-form" type="checkbox" name="ids[]" value="{{ $field->id }}" class="row-check rounded border-gray-300">
-                        </td>
+                    <tr
+                        @if ($canWrite)
+                            data-edit-url="{{ route('fields.edit', $field) }}"
+                        @endif
+                        class="border-b border-gray-100 {{ $canWrite ? 'cursor-pointer hover:bg-gray-50' : '' }}"
+                    >
+                        @if ($canDelete)
+                            <td class="px-3 py-3" onclick="event.stopPropagation()">
+                                <input form="bulk-form" type="checkbox" name="ids[]" value="{{ $field->id }}" class="row-check rounded border-gray-300">
+                            </td>
+                        @endif
                         <td class="px-3 py-3 font-medium text-gray-800">{{ $field->name }}</td>
                         <td class="px-3 py-3 text-gray-600">{{ $field->surface_type ?? '—' }}</td>
                         <td class="px-3 py-3 text-gray-600">{{ $field->capacity ?? '—' }}</td>
@@ -92,11 +114,13 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-3 py-8 text-center text-gray-500">No hay sedes registradas.</td></tr>
+                    <tr><td colspan="{{ $canDelete ? 6 : 5 }}" class="px-3 py-8 text-center text-gray-500">No hay sedes registradas.</td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 
-    @include('layouts.partials.crud-bulk-scripts')
+    @if ($canWrite || $canDelete)
+        @include('layouts.partials.crud-bulk-scripts')
+    @endif
 @endsection

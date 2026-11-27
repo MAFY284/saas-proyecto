@@ -22,14 +22,7 @@
 
 @section('content')
     <form id="role-form" method="POST" action="{{ route('roles.update', $role) }}" class="h-full w-full">
-        @include('roles._form', [
-            'role' => $role,
-            'leagues' => $leagues ?? collect(),
-            'availableResources' => $availableResources,
-            'rolePermissions' => $rolePermissions,
-            'hasReadPermission' => $hasReadPermission,
-            'hasWritePermission' => $hasWritePermission,
-        ])
+        @include('roles._form')
     </form>
 @endsection
 

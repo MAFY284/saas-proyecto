@@ -31,23 +31,51 @@ class AppServiceProvider extends ServiceProvider
                 ];
             };
 
+            $user = auth()->user();
+            $adminItems = [];
+
+            if ($user?->canAccess('users')) {
+                $adminItems[] = $link('Usuarios', 'users.index', 'GET', 'users.*');
+            }
+
+            if ($user?->canAccess('roles')) {
+                $adminItems[] = $link('Roles', 'roles.index', 'GET', 'roles.*');
+                $adminItems[] = $link('Acceso', 'access.index', 'GET', 'access.*');
+            }
+
+            $sportsItems = [];
+
+            if ($user) {
+                $sportsLinks = [
+                    ['Ligas', 'leagues', 'leagues'],
+                    ['Torneos', 'tournaments', 'tournaments'],
+                    ['Partidos', 'matches', 'matches'],
+                    ['Cédulas arbitrales', 'referee-cards', 'referee_cards'],
+                    ['Equipos', 'teams', 'teams'],
+                    ['Jugadores', 'players', 'players'],
+                    ['Sedes', 'fields', 'fields'],
+                ];
+
+                foreach ($sportsLinks as [$label, $module, $resource]) {
+                    if ($user->canAccess($resource)) {
+                        $sportsItems[] = $link($label, "$module.index", 'GET', "$module.*");
+                    }
+                }
+            }
+
             $view->with([
-                'mainMenus' => auth()->check() ? [
-                    [
+                'mainMenus' => $user ? [
+                    ...($adminItems === [] ? [] : [[
                         'id'        => 'admin',
                         'label'     => 'Administración',
-                        'url'       => route('users.index'),
+                        'url'       => $adminItems[0]['url'],
                         'is_active' => request()->routeIs('users.*', 'roles.*', 'access.*'),
-                        'items'     => [
-                            $link('Usuarios', 'users.index', 'GET', 'users.*'),
-                            $link('Roles',    'roles.index', 'GET', 'roles.*'),
-                            $link('Acceso',   'access.index', 'GET', 'access.*'),
-                        ],
-                    ],
-                    [
+                        'items'     => $adminItems,
+                    ]]),
+                    ...($sportsItems === [] ? [] : [[
                         'id'        => 'sports',
                         'label'     => 'Gestión',
-                        'url'       => route('matches.index'),
+                        'url'       => $sportsItems[0]['url'],
                         'is_active' => request()->routeIs(
                             'leagues.*',
                             'matches.*',
@@ -57,16 +85,8 @@ class AppServiceProvider extends ServiceProvider
                             'fields.*',
                             'tournaments.*',
                         ),
-                        'items' => [
-                            $link('Ligas',        'leagues.index',       'GET', 'leagues.*'),
-                            $link('Torneos',      'tournaments.index',   'GET', 'tournaments.*'),
-                            $link('Partidos',     'matches.index',       'GET', 'matches.*'),
-                            $link('Cédulas arbitrales', 'referee-cards.index', 'GET', 'referee-cards.*'),
-                            $link('Equipos',      'teams.index',         'GET', 'teams.*'),
-                            $link('Jugadores',    'players.index',       'GET', 'players.*'),
-                            $link('Sedes',        'fields.index',        'GET', 'fields.*'),
-                        ],
-                    ],
+                        'items'     => $sportsItems,
+                    ]]),
                 ] : [],
                 'accountMenus' => auth()->check() ? [
                     [

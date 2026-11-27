@@ -68,7 +68,7 @@
             </select>
             <button type="button" id="open-position-modal"
                 class="shrink-0 cursor-pointer rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                + Nueva
+                {{ auth()->user()->canAccessAction('players', 'create') ? '+ Nueva' : 'Administrar' }}
             </button>
         </div>
         @error('position_id') <span class="text-xs text-red-700">{{ $message }}</span> @enderror

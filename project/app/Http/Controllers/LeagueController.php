@@ -65,7 +65,7 @@ class LeagueController extends Controller
         $league->save();
 
         return redirect()
-            ->route('leagues.index')
+            ->route($request->user()->canAccess('leagues') ? 'leagues.index' : 'home')
             ->with('status', 'Liga creada.');
     }
 
@@ -93,7 +93,7 @@ class LeagueController extends Controller
         $league->save();
 
         return redirect()
-            ->route('leagues.index')
+            ->route($request->user()->canAccess('leagues') ? 'leagues.index' : 'home')
             ->with('status', 'Liga actualizada.');
     }
 
@@ -127,7 +127,7 @@ class LeagueController extends Controller
         }
 
         return redirect()
-            ->route('leagues.index')
+            ->route($request->user()->canAccess('leagues') ? 'leagues.index' : 'home')
             ->with('status', $deleted === 1 ? 'Liga eliminada.' : "{$deleted} ligas eliminadas.");
     }
 

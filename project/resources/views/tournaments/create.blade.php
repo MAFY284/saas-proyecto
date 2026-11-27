@@ -1,17 +1,23 @@
 @extends('layouts.crud')
 
+@php
+    $canCreate = auth()->user()->canAccessAction('tournaments', 'create');
+@endphp
+
 @section('title', 'Crear torneo')
 @section('subtitle', 'Torneos')
 @section('module', 'Nuevo torneo')
 
 @section('actions')
-    <button
-        type="submit"
-        form="tournament-form"
-        class="inline-flex cursor-pointer items-center justify-center rounded-lg border-0 bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
-    >
-        Guardar
-    </button>
+    @if ($canCreate)
+        <button
+            type="submit"
+            form="tournament-form"
+            class="inline-flex cursor-pointer items-center justify-center rounded-lg border-0 bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800"
+        >
+            Guardar
+        </button>
+    @endif
     <a
         href="{{ route('tournaments.index') }}"
         class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 no-underline hover:bg-gray-50"
@@ -20,6 +26,7 @@
     </a>
 @endsection
 
+@if ($canCreate)
 @section('content')
     <form id="tournament-form" method="POST" action="{{ route('tournaments.store') }}" class="h-full w-full">
         @csrf
@@ -142,3 +149,8 @@
         </div>
     </form>
 @endsection
+@else
+@section('content')
+    <p class="text-sm text-gray-600">No tienes permiso de creación para este módulo.</p>
+@endsection
+@endif

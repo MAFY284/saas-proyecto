@@ -3,6 +3,12 @@
 @section('title', 'Cédulas arbitrales')
 @section('module', 'Cédulas arbitrales')
 
+@php
+    $canWrite = auth()->user()->canAccess('referee_cards', true);
+    $canCreate = auth()->user()->canAccessAction('referee_cards', 'create');
+    $canDelete = auth()->user()->canAccessAction('referee_cards', 'delete');
+@endphp
+
 @section('header-search')
     <form method="GET" action="{{ route('referee-cards.index') }}" role="search">
         <label for="crud-search" class="sr-only">Buscar cédulas arbitrales</label>
@@ -30,6 +36,7 @@
     </form>
 @endsection
 
+@if ($canCreate)
 @section('actions')
     <a
         href="{{ route('referee-cards.create') }}"
@@ -39,6 +46,9 @@
     </a>
 @endsection
 
+@endif
+
+@if ($canDelete)
 @section('header-center')
     <div id="bulk-menu" class="relative hidden" hidden>
         <button
@@ -70,15 +80,18 @@
         </div>
     </div>
 @endsection
+@endif
 
 @section('header-right')
     @include('pagination.header', ['paginator' => $cards])
 @endsection
 
 @section('content')
-    <form id="bulk-form" method="POST">
-        @csrf
-    </form>
+    @if ($canDelete)
+        <form id="bulk-form" method="POST">
+            @csrf
+        </form>
+    @endif
 
     @if (session('success'))
         <div role="status" class="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
@@ -96,14 +109,16 @@
         <table class="min-w-full border-collapse text-left text-sm">
             <thead>
                 <tr class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
-                    <th class="w-10 px-3 py-3">
-                        <input
-                            id="select-all"
-                            type="checkbox"
-                            class="rounded border-gray-300"
-                            aria-label="Seleccionar todas"
-                        >
-                    </th>
+                    @if ($canDelete)
+                        <th class="w-10 px-3 py-3">
+                            <input
+                                id="select-all"
+                                type="checkbox"
+                                class="rounded border-gray-300"
+                                aria-label="Seleccionar todas"
+                            >
+                        </th>
+                    @endif
                     <th class="px-3 py-3">Fecha</th>
                     <th class="px-3 py-3">Partido</th>
                     <th class="px-3 py-3 text-center">Marcador</th>
@@ -120,18 +135,22 @@
             <tbody>
                 @forelse ($cards as $card)
                     <tr
-                        data-edit-url="{{ route('referee-cards.edit', $card) }}"
-                        class="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                        @if ($canWrite)
+                            data-edit-url="{{ route('referee-cards.edit', $card) }}"
+                        @endif
+                        class="border-b border-gray-100 {{ $canWrite ? 'cursor-pointer hover:bg-gray-50' : '' }}"
                     >
-                        <td class="px-3 py-3" onclick="event.stopPropagation()">
-                            <input
-                                form="bulk-form"
-                                type="checkbox"
-                                name="ids[]"
-                                value="{{ $card->id }}"
-                                class="row-check rounded border-gray-300"
-                            >
-                        </td>
+                        @if ($canDelete)
+                            <td class="px-3 py-3" onclick="event.stopPropagation()">
+                                <input
+                                    form="bulk-form"
+                                    type="checkbox"
+                                    name="ids[]"
+                                    value="{{ $card->id }}"
+                                    class="row-check rounded border-gray-300"
+                                >
+                            </td>
+                        @endif
                         <td class="px-3 py-3 text-gray-600">
                             {{ $card->match_date?->format('d/m/Y') ?? '—' }}
                         </td>
@@ -160,7 +179,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="12" class="px-3 py-8 text-center text-gray-500">
+                        <td colspan="{{ $canDelete ? 12 : 11 }}" class="px-3 py-8 text-center text-gray-500">
                             No hay cédulas arbitrales registradas.
                         </td>
                     </tr>
@@ -169,5 +188,7 @@
         </table>
     </div>
 
-    @include('layouts.partials.crud-bulk-scripts')
+    @if ($canWrite || $canDelete)
+        @include('layouts.partials.crud-bulk-scripts')
+    @endif
 @endsection

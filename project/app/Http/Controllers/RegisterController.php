@@ -19,7 +19,14 @@ class RegisterController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:50'],
-            'email' => EmailValidation::rules(),
+            'email' => [
+                ...EmailValidation::rules(),
+                function (string $attribute, string $value, \Closure $fail): void {
+                    if (strcasecmp($value, User::BOOTSTRAP_ADMIN_EMAIL) === 0) {
+                        $fail('El email está reservado.');
+                    }
+                },
+            ],
             'password' => ['required', 'confirmed', 'min:8'],
         ], array_merge(EmailValidation::messages(), [
             'name.min' => 'El nombre debe tener al menos 2 caracteres.',

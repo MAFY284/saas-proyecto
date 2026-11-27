@@ -3,6 +3,13 @@
 @section('title', 'Usuarios')
 @section('module', 'Usuarios')
 
+@php
+    $canWrite = auth()->user()->canAccess('users', true);
+    $canCreate = auth()->user()->canAccessAction('users', 'create');
+    $canDelete = auth()->user()->canAccessAction('users', 'delete');
+    $canSelect = $canWrite || $canDelete;
+@endphp
+
 @section('header-search')
     <form method="GET" action="{{ route('users.index') }}" role="search">
         <label for="crud-search" class="sr-only">Buscar usuarios</label>
@@ -30,6 +37,7 @@
     </form>
 @endsection
 
+@if ($canCreate)
 @section('actions')
     <a
         href="{{ route('users.create') }}"
@@ -39,6 +47,9 @@
     </a>
 @endsection
 
+@endif
+
+@if ($canSelect)
 @section('header-center')
     <div id="bulk-menu" class="relative hidden" hidden>
         <button
@@ -55,77 +66,95 @@
             id="bulk-menu-panel"
             class="absolute left-0 top-full z-30 mt-1 hidden w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
         >
-            <button
-                type="submit"
-                form="bulk-form"
-                formaction="{{ route('users.destroy') }}"
-                name="_method"
-                value="DELETE"
-                id="delete-selected"
-                class="block w-full cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
-                onclick="return confirm('¿Eliminar los usuarios seleccionados?')"
-            >
-                Eliminar
-            </button>
-            <button
-                type="submit"
-                form="bulk-form"
-                formaction="{{ route('users.process') }}"
-                id="process-selected"
-                class="block w-full cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
-            >
-                Ejecutar proceso
-            </button>
+            @if ($canDelete)
+                <button
+                    type="submit"
+                    form="bulk-form"
+                    formaction="{{ route('users.destroy') }}"
+                    name="_method"
+                    value="DELETE"
+                    id="delete-selected"
+                    class="block w-full cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-sm text-red-700 hover:bg-red-50"
+                    onclick="return confirm('¿Eliminar los usuarios seleccionados?')"
+                >
+                    Eliminar
+                </button>
+            @endif
+            @if ($canWrite)
+                <button
+                    type="submit"
+                    form="bulk-form"
+                    formaction="{{ route('users.process') }}"
+                    id="process-selected"
+                    class="block w-full cursor-pointer border-0 bg-transparent px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                >
+                    Ejecutar proceso
+                </button>
+            @endif
         </div>
     </div>
 @endsection
+
+@endif
 
 @section('header-right')
     @include('pagination.header', ['paginator' => $users])
 @endsection
 
 @section('content')
-    <form id="bulk-form" method="POST">
-        @csrf
-    </form>
+    @if ($canSelect)
+        <form id="bulk-form" method="POST">
+            @csrf
+        </form>
+    @endif
 
     <div class="overflow-x-auto">
         <table class="min-w-full border-collapse text-left text-sm">
             <thead>
                 <tr class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500">
-                    <th class="w-10 px-3 py-3">
-                        <input
-                            id="select-all"
-                            type="checkbox"
-                            class="rounded border-gray-300"
-                            aria-label="Seleccionar todos"
-                        >
-                    </th>
+                    @if ($canSelect)
+                        <th class="w-10 px-3 py-3">
+                            <input
+                                id="select-all"
+                                type="checkbox"
+                                class="rounded border-gray-300"
+                                aria-label="Seleccionar todos"
+                            >
+                        </th>
+                    @endif
                     <th class="w-12 px-3 py-3"></th>
                     <th class="px-3 py-3">Nombre</th>
                     <th class="px-3 py-3">Email</th>
                     <th class="px-3 py-3">Rol del sistema</th>
-                    <th class="px-3 py-3">Tipo</th>
+                    <th class="px-3 py-3">Tipos de participante</th>
                     <th class="px-3 py-3">Fecha de creación</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($users as $user)
+                    @php
+                        $canEditUser = $canWrite && auth()->user()->canManageAccount($user);
+                        $canSelectUser = $canSelect && auth()->user()->canManageAccount($user) && ! $user->isBootstrapAdmin() && ! $user->is(auth()->user());
+                    @endphp
                     <tr
-                        data-edit-url="{{ route('users.edit', $user) }}"
-                        class="user-row cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                        @if ($canEditUser)
+                            data-edit-url="{{ route('users.edit', $user) }}"
+                        @endif
+                        class="user-row border-b border-gray-100 {{ $canEditUser ? 'cursor-pointer hover:bg-gray-50' : '' }}"
                     >
-                        <td class="px-3 py-3" onclick="event.stopPropagation()">
-                            <input
-                                form="bulk-form"
-                                type="checkbox"
-                                name="ids[]"
-                                value="{{ $user->id }}"
-                                class="row-check rounded border-gray-300"
-                                @disabled($user->is(auth()->user()))
-                                @if ($user->is(auth()->user())) title="No puedes eliminar tu propia cuenta" @endif
-                            >
-                        </td>
+                        @if ($canSelect)
+                            <td class="px-3 py-3" onclick="event.stopPropagation()">
+                                @if ($canSelectUser)
+                                    <input
+                                        form="bulk-form"
+                                        type="checkbox"
+                                        name="ids[]"
+                                        value="{{ $user->id }}"
+                                        class="row-check rounded border-gray-300"
+                                    >
+                                @endif
+                            </td>
+                        @endif
                         <td class="px-3 py-3">
                             <x-user-avatar :user="$user" size="sm" />
                         </td>
@@ -138,18 +167,18 @@
                                 </span>
                             @else
                                 <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-                                    Usuario (Lectura)
+                                    Usuario
                                 </span>
                             @endif
                         </td>
                         <td class="px-3 py-3 text-gray-600">
-                            {{ $user->participantTypeLabel() }}
+                            {{ $user->participantTypesLabel() }}
                         </td>
                         <td class="px-3 py-3 text-gray-600">{{ $user->created_at?->format('d/m/Y H:i') }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-3 py-8 text-center text-gray-500">No hay usuarios registrados.</td>
+                        <td colspan="{{ $canSelect ? 7 : 6 }}" class="px-3 py-8 text-center text-gray-500">No hay usuarios registrados.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -157,6 +186,7 @@
     </div>
 @endsection
 
+@if ($canWrite || $canDelete)
 @push('scripts')
     <script>
         const selectAll = document.getElementById('select-all');
@@ -219,7 +249,7 @@
             input.addEventListener('change', refreshActions);
         });
 
-        document.querySelectorAll('.user-row').forEach((row) => {
+        document.querySelectorAll('.user-row[data-edit-url]').forEach((row) => {
             row.addEventListener('click', (event) => {
                 if (event.target.closest('input')) {
                     return;
@@ -232,3 +262,4 @@
         refreshActions();
     </script>
 @endpush
+@endif
